@@ -1,42 +1,152 @@
 ---
-title: "Deployment Guides"
+title: "Deploy with ECS Fargate"
+date: 2024-10-24T00:00:00+00:00
+icon: 'ti-anchor' # themify icon pack : https://themify.me/themify-icons
+description: "Deploy wasmCloud on Amazon's ECS Fargate service"
+sidebar_position: 1
+type: 'docs'
 ---
 
-# Deployment Guides
+## Overview
 
-Run wasmCloud on any cloud, seamlessly integrated with your existing cloud-native estate. 
+This deployment guide demonstrates how to deploy wasmCloud using [Amazon's Elastic Container Service (ECS) Fargate](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/AWS_Fargate.html) service. 
 
-The CNCF wasmCloud project operates seamlessly on container orchestration platforms such as AWS Elastic Kubernetes Service (EKS), Google Kubernetes Engine (GKE), Microsoft Azure Kubernetes Service (AKS), on-premises solutions like Rancher and VMware Tanzu, and many others. 
+To follow this guide, you will need an [Amazon Web Services](https://aws.amazon.com/) account.
 
-This page outlines platforms supported by wasmCloud with the best available deployment instructions for each. If your platform of choice doesn't have deployment instructions available, you are welcome to request them by opening an issue in the [GitHub repository for this site](https://github.com/wasmCloud/wasmcloud.com). 
+## Install tools
 
-### wasmCloud Platform Compatibility Overview
+This guide uses the [**Terraform CLI**](https://developer.hashicorp.com/terraform/tutorials/aws-get-started/install-cli) and a local installation of the [**wasmCloud Shell (`wash`)** CLI](/docs/installation.mdx)
 
-| Vendor                     | Platform Name                          | Compatible | Deployment Instructions                                                                                                                                       | wasmCloud Deployment |
-|----------------------------|----------------------------------------|-----------|----------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------|
-| **Amazon Web Services**    | Amazon Elastic Kubernetes Service (EKS) | Yes       | [EKS Documentation](https://docs.aws.amazon.com/eks/latest/userguide/getting-started.html)                                                                      | [Deploy wasmCloud on Kubernetes](/docs/deployment/k8s/index.mdx)                      |
-|                            | Amazon Elastic Container Service (ECS)  | Yes       | [ECS Documentation](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/Welcome.html)                                                                   | [Request documentation](https://github.com/wasmCloud/wasmcloud.com/issues/new)                      |
-|                            | AWS Fargate                             | Yes       | [Fargate Documentation](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/AWS_Fargate.html)                                                           | [Deploy wasmCloud with ECS Fargate](/docs/deployment/deployment-guide/ecs-fargate)                      |
-|                            | AWS App Runner                          | Yes       | [App Runner Documentation](https://docs.aws.amazon.com/apprunner/latest/dg/what-is-apprunner.html)                                                              | [Request documentation](https://github.com/wasmCloud/wasmcloud.com/issues/new)                    |
-| **Google Cloud Platform**  | Google Kubernetes Engine (GKE)          | Yes       | [GKE Documentation](https://cloud.google.com/kubernetes-engine/docs/quickstart)                                                                                 | [Deploy wasmCloud on Kubernetes](/docs/deployment/k8s/index.mdx)                      |
-|                            | Google App Engine                       | Yes       | [App Engine Documentation](https://cloud.google.com/appengine/docs)                                                                                             | [Request documentation](https://github.com/wasmCloud/wasmcloud.com/issues/new)                      |
-| **Microsoft Azure**        | Azure Kubernetes Service (AKS)          | Yes       | [AKS Documentation](https://learn.microsoft.com/en-us/azure/aks/)                                                                                               | [Deploy wasmCloud on Kubernetes](/docs/deployment/k8s/index.mdx)                      |
-|                            | Azure Container Instances (ACI)         | Yes       | [ACI Documentation](https://learn.microsoft.com/en-us/azure/container-instances/)                                                                               | [Request documentation](https://github.com/wasmCloud/wasmcloud.com/issues/new)                      |
-|                            | Azure App Service                       | Yes       | [App Service Documentation](https://learn.microsoft.com/en-us/azure/app-service/)                                                                               | [Request documentation](https://github.com/wasmCloud/wasmcloud.com/issues/new)                      |
-|                            | Azure Red Hat OpenShift                 | Yes       | [Azure Red Hat OpenShift Documentation](https://learn.microsoft.com/en-us/azure/openshift/)                                                                     | [Request documentation](https://github.com/wasmCloud/wasmcloud.com/issues/new)                      |
-| **IBM Cloud**              | IBM Cloud Kubernetes Service            | Yes       | [IBM Cloud Kubernetes Service Documentation](https://cloud.ibm.com/docs/containers)                                                                             | [Deploy wasmCloud on Kubernetes](/docs/deployment/k8s/index.mdx)                      |
-|                            | IBM Cloud Code Engine                   | Yes       | [IBM Cloud Code Engine Documentation](https://cloud.ibm.com/docs/codeengine)                                                                                    | [Request documentation](https://github.com/wasmCloud/wasmcloud.com/issues/new)                      |
-|                            | IBM Cloud Red Hat OpenShift             | Yes       | [IBM Cloud Red Hat OpenShift Documentation](https://cloud.ibm.com/docs/openshift)                                                                               | [Deploy wasmCloud on Kubernetes](/docs/deployment/k8s/index.mdx)                      |
-| **Oracle Cloud**           | Oracle Kubernetes Engine (OKE)          | Yes       | [OKE Documentation](https://docs.oracle.com/en-us/iaas/Content/ContEng/Concepts/contengoverview.htm)                                                            | [Deploy wasmCloud on Kubernetes](/docs/deployment/k8s/index.mdx)                     |
-|                            | Oracle Functions                        | Yes       | [Oracle Functions Documentation](https://docs.oracle.com/en-us/iaas/Content/Functions/Concepts/functionsoverview.htm)                                           | [Request documentation](https://github.com/wasmCloud/wasmcloud.com/issues/new)                      |
-| **VMware**                 | VMware Tanzu Kubernetes Grid            | Yes       | [Tanzu Kubernetes Grid Documentation](https://docs.vmware.com/en/VMware-Tanzu-Kubernetes-Grid/index.html)                                                       | [Request documentation](https://github.com/wasmCloud/wasmcloud.com/issues/new)                      |
-|                            | Tanzu Application Service               | Yes       | [Tanzu Application Service Documentation](https://docs.vmware.com/en/VMware-Tanzu-Application-Service/index.html)                                               | [Request documentation](https://github.com/wasmCloud/wasmcloud.com/issues/new)                      |
-| **Red Hat**                | OpenShift Kubernetes Platform           | Yes       | [OpenShift Documentation](https://docs.openshift.com/container-platform/4.9/welcome/index.html)                                                                 | [Deploy wasmCloud on Kubernetes](/docs/deployment/k8s/index.mdx)                     |
-| **DigitalOcean**           | DigitalOcean Kubernetes                 | Yes       | [DigitalOcean Kubernetes Documentation](https://docs.digitalocean.com/products/kubernetes/)                                                                     | [Deploy wasmCloud on Kubernetes](/docs/deployment/k8s/index.mdx)                     |
-|                            | DigitalOcean App Platform               | Yes       | [App Platform Documentation](https://docs.digitalocean.com/products/app-platform/)                                                                              | [Request documentation](https://github.com/wasmCloud/wasmcloud.com/issues/new)                      |
-| **Akamai**                 | Akamai Linode Kubernetes Engine         | Yes       | [Akamai Linode Kubernetes Engine Documentation](https://techdocs.akamai.com/cloud-computing/docs/linode-kubernetes-engine)                                      | [Deploy wasmCloud with Akamai LKE](/docs/deployment/k8s/akamai) |
-| **On-Premises Solutions**  | Rancher                                 | Yes       | [Rancher Documentation](https://rancher.com/docs/rancher/latest/en/)                                                                                            | [Deploy wasmCloud on Kubernetes](/docs/deployment/k8s/index.mdx)                      |
-|                            | OpenShift                               | Yes       | [OpenShift Documentation](https://docs.openshift.com/container-platform/4.9/welcome/index.html)                                                                 | [Deploy wasmCloud on Kubernetes](/docs/deployment/k8s/index.mdx)                      |
-|                            | VMware Tanzu Kubernetes Grid            | Yes       | [Tanzu Kubernetes Grid Documentation](https://docs.vmware.com/en/VMware-Tanzu-Kubernetes-Grid/index.html)                                                       | [Request documentation](https://github.com/wasmCloud/wasmcloud.com/issues/new)                      |
+### Install Terraform CLI
 
----
+On macOS, you can use [Homebrew](https://brew.sh/) to install the Terraform CLI:
+
+```shell
+brew install hashicorp/tap/terraform
+```
+
+On Windows, you can use [Chocolatey](https://chocolatey.org/) to install the Terraform CLI:
+
+```shell
+choco install terraform
+```
+Note that **we recommend using Windows Subsystem for Linux (WSL)** to run `wash` on Windows, and you may wish to use the Linux instructions instead.
+
+For installation on Linux distributions, see the [documentation for Terraform CLI installation](https://developer.hashicorp.com/terraform/tutorials/aws-get-started/install-cli).
+
+### Install `wash`
+
+Once wasmCloud is deployed to ECS Fargate, you can use the **wasmCloud Shell (`wash`)** CLI to manage wasmCloud applications. If you do not have `wash` installed locally, follow the instructions below.
+
+On macOS, you can use [Homebrew](https://brew.sh/) to install `wash`:
+
+```shell
+brew install wasmcloud/wasmcloud/wash
+```
+
+On Ubuntu and Debian Linux, you can use `apt` to install `wash`:
+
+```shell
+curl -s https://packagecloud.io/install/repositories/wasmcloud/core/script.deb.sh | sudo bash
+```
+
+```shell
+sudo apt install wash
+```
+
+We recommend using **Windows Subsystem for Linux (WSL)** to run `wash` on Windows. 
+
+You can find more information about Windows installs&mdash;as well as other package managers and the option to install from source&mdash;on the [installation page](/docs/installation).
+
+Verify that `wash` is installed by running:
+
+```shell
+wash --version
+```
+
+## Instance requirements
+
+Below are the required elements of a wasmCloud deployment on ECS Fargate:
+
+- 1x NATS instance
+  - Public Load Balancer exposing port 4222 (`wash` access)
+  - Ephemeral Volume for Jetstream
+- 1x wasmCloud wadm instance
+- 1x wasmCloud worker instance
+  - Autoscaling based on CPU usage
+  - Capacity: 1 min, 1 max (configurable)
+- 1x wasmCloud ingress instance
+  - Public Load Balancer exposing port 80 (`http` access)
+
+## Deploy wasmCloud with Terraform
+
+Download the Terraform files from the `deploy/ecs-fargate` directory in the [wasmCloud community contributions](https://github.com/wasmCloud/contrib) repository. 
+
+```shell
+git clone https://github.com/wasmcloud/contrib.git
+```
+```shell
+cd deploy/ecs-fargate
+```
+
+Create a file named `terraform.tvfars` with the following content:
+
+```hcl
+aws_region              = "us-east-2"
+
+# If using aws cli profile (SSO), set it here
+aws_profile             = "enterprise-dev"
+
+# CIDRs for wash access ( default none )
+nats_allowed_cidrs      = ["XX.XX.XX.XX/XX"]
+
+# CIDRs for http access ( default 0.0.0/0 )
+wasmcloud_allowed_cidrs = ["XX.XX.XX.XX/XX"]
+```
+
+Replace the X's in the `nats_allowed_cidrs` and `wasmcloud_allowed_cidrs` fields with your local CIDR block to allow connection with your local `wash` via NATS (as well as HTTP access). 
+
+:::warning[Security note]
+The permissiveness of allowed CIDRs is an important security consideration and should be evaluated carefully to minimize vulnerability.
+:::
+
+Apply the Terraform configuration:
+
+```shell
+terraform init
+```
+```shell
+terraform apply
+```
+
+## Manage wasmCloud with `wash`
+
+Create an environment variable connecting your local `wash` CLI to your deployed wasmCloud host:
+
+```shell
+export WASMCLOUD_CTL_HOST="$(terraform output -raw nats_lb)"
+```
+Test `wash` connectivity:
+
+```shell
+wash get inventory
+```
+
+## Deploy and access applications
+
+Once `wash` is set up, deploy a sample application from the `wasmcloud-on-ecs-fargate` directory:
+
+```shell
+wash app deploy ./hello-world-wadm.yaml
+```
+
+To access the application, create an environment variable connecting your local `wash` CLI to the wasmCloud endpoint:
+
+```shell
+export WASMCLOUD_LB="$(terraform output -raw wasmcloud_public_lb)"
+```
+Test the application:
+
+```shell
+curl -i http://$WASMCLOUD_LB
+```
