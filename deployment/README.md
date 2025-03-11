@@ -9,6 +9,7 @@ If your preferred platform is not listed or lacks detailed instructions, feel fr
 ---
 
 ## Microcks Platform Compatibility Overview
+Microcks is built to run on Kubernetes, ensuring compatibility with a wide range of cloud providers and on-premises solutions. Below is a list of supported platforms, along with links to their official documentation and step-by-step deployment guides for Microcks.
 
 | Vendor                     | Platform Name                          | Compatible | Documentation                                                                                                                                      | Microcks Deployment                                                                                   |
 |----------------------------|----------------------------------------|------------|----------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------|
