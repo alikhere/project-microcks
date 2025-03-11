@@ -38,5 +38,4 @@ Before you start deploying Microcks on AWS EKS, ensure that the following prereq
 
 ### Step 1: **Set Up EKS Cluster**
 
-1. **Create an EKS Cluster**:
 
