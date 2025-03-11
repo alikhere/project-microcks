@@ -10,8 +10,6 @@ If your preferred platform is not listed or lacks detailed instructions, feel fr
 
 ## Microcks Platform Compatibility Overview
 
-Microcks is designed to run on **Kubernetes**, making it compatible with a wide range of cloud providers and on-premises solutions. Below is a list of supported platforms, along with links to their official documentation and step-by-step deployment guides for Microcks.
-
 | Vendor                     | Platform Name                          | Compatible | Documentation                                                                                                                                      | Microcks Deployment                                                                                   |
 |----------------------------|----------------------------------------|------------|----------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------|
 | **Amazon Web Services**    | Amazon Elastic Kubernetes Service (EKS) | Yes        | [EKS Documentation](https://docs.aws.amazon.com/eks/latest/userguide/getting-started.html)                                                         | [Deploy Microcks on EKS](https://github.com/alikhere/project-microcks/tree/main/deployment/cloud-providers/aws)       |
