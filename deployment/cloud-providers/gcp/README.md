@@ -49,9 +49,8 @@ gcloud projects add-iam-policy-binding [PROJECT_ID] \
     --member="serviceAccount:microcks-user@[PROJECT_ID].iam.gserviceaccount.com" \
     --role="roles/storage.admin"
 ```
-👉 Replace `[PROJECT_ID]` with your Google Cloud project ID.
-
-✅ Enable Required APIs
+ Replace `[PROJECT_ID]` with your Google Cloud project ID.
+ Enable Required APIs
 ```sh
 gcloud services enable container.googleapis.com
 ```
