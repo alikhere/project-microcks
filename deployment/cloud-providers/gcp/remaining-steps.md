@@ -24,21 +24,6 @@ microcks:
 replicaCount: 3
 ```
 
-### Cloud SQL Connection Name
-Get the connection name of your Cloud SQL instance by running:
-
-```bash
-gcloud sql instances describe <your-cloud-sql-instance> --format="value(connectionName)"
-```
-
-### Keycloak Configuration
-Keycloak URL, Realm, Client ID, and Client Secret details will be provided by the external Keycloak service or your internal Keycloak setup. You need to set them in the `values.yaml` file.
-
-### Firestore Configuration
-Firestore doesn’t require any special setup in terms of URI. Just specify the Firestore project ID in the `mongodb` section of `values.yaml`.
-
----
-
 ## Step 6: Deploy Microcks Using Helm
 
 Deploy Microcks to your GKE cluster using Helm:
