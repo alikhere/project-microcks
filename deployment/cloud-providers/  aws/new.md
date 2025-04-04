@@ -285,8 +285,8 @@ identity:
   provider: keycloak
   keycloak:
     url: "http://keycloak.<KEYCLOAK-EXTERNAL-IP>.nip.io" 
-    realm: "microcks"
-    clientId: "microcks-app"
+    realm: "<YOUR-REALM-NAME"
+    clientId: "YOUR-CLIENT-ID"
     clientSecret: "<CLIENT-SECRET>"
 
 postman:
