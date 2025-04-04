@@ -1,15 +1,17 @@
 # Deploying Microcks on Google Kubernetes Engine (GKE)
 
+## Overview
+This guide provides a step-by-step approach to deploying **Microcks** on **Google Kubernetes Engine (GKE)** using **Google Cloud SQL (PostgreSQL)**, **Firestore**, and integrating with **Keycloak** for authentication.
 ## Prerequisites
-Before deploying Microcks on GKE, ensure that both the root user (admin) and the developer have installed the following tools:
+Before deploying Microcks on GKE, ensure the following tools are installed and configured:
 
-1. **Google Cloud SDK (gcloud):** Required for interacting with GCP resources (e.g., GKE, Cloud SQL, Firestore). [Install Google Cloud SDK](https://cloud.google.com/sdk/docs/install)
-2. **Helm:** Required for deploying Microcks on Kubernetes using Helm charts. [Install Helm](https://helm.sh/docs/intro/install/)
-3. **Kubernetes CLI (kubectl):** Required for interacting with Kubernetes clusters (e.g., deploying Microcks, viewing pods). [Install kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
-4. **Docker (Optional):** Required if deploying locally or testing with Docker Compose. [Install Docker](https://docs.docker.com/get-docker/)
+- **Google Cloud SDK (gcloud):** Required for interacting with GCP resources such as GKE, Cloud SQL, and Firestore.  [Install Google Cloud SDK](https://cloud.google.com/sdk/docs/install)
 
----
+- **Helm:** Used for deploying Microcks via Helm charts.  [Install Helm](https://helm.sh/docs/intro/install/)
 
+- **Kubernetes CLI (kubectl):** Required for managing Kubernetes resources on GKE.  [Install kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
+
+- **Docker (Optional):** Useful for local testing and development using Docker Compose.   [Install Docker](https://docs.docker.com/get-docker/)
 
 
 ## 1. Authenticate and Set Up GCP Project
@@ -32,7 +34,6 @@ Your Google Cloud project must be linked to a billing account. If you haven’t 
 
 Alternatively, enable billing using the command-line:
 ```sh
-$ gcloud beta billing projects describe <PROJECT-ID>
 $ gcloud beta billing accounts list
 $ gcloud beta billing projects link <PROJECT-ID> --billing-account=<BILLING-ACCOUNT-ID>
 $ gcloud beta billing projects describe <PROJECT-ID>
@@ -228,73 +229,15 @@ $ gcloud sql instances describe <INSTANCE-NAME> \
 
 ## 7. Deploy Keycloak on GKE with Cloud SQL
 
-### Add Keycloak Helm Repository
+Follow the [Keycloak deployment guide for GCP GKE](https://github.com/microcks/community/blob/main/install/gcp/keycloak-installation.md) provided by the Microcks community.
 
-```sh
-$ helm repo add bitnami https://charts.bitnami.com/bitnami
-$ helm repo update
-```
+Start from **Step 6** of the document and continue through the remaining steps to deploy Keycloak on your GKE cluster.
 
-### Prepare `keycloak.yaml` Configuration File
+Once Keycloak is successfully deployed, complete the following configuration:
 
-```sh
-$ cat > keycloak.yaml <<EOF
-auth:
-  adminUser: admin
-  adminPassword: "<ADMIN-PASSWORD>"
-
-postgresql:
-  enabled: false
-
-externalDatabase:
-  host: "<CLOUDSQL-PRIVATE-IP>"
-  port: 5432
-  database: "<DATABASE-NAME>"
-  user: "<USERNAME>"
-  password: "<USER-PASSWORD>"
-  scheme: "postgresql"
-
-service:
-  type: LoadBalancer
-
-resources:
-  requests:
-    cpu: "500m"
-    memory: "512Mi"
-  limits:
-    cpu: "1"
-    memory: "1Gi"
-EOF
-```
-
-### Install Keycloak
-
-```sh
-$ helm install keycloak bitnami/keycloak -f keycloak.yaml -n microcks --create-namespace
-```
-
-### Check Pod Status
-
-```sh
-$ kubectl get pods -n microcks -l app.kubernetes.io/name=keycloak
-```
-
-### Get External IP of Keycloak
-
-```sh
-$ kubectl get svc -n microcks keycloak -o wide
-```
-
-### Upgrade Keycloak with nip.io Hostname
-
-```sh
-$ helm upgrade keycloak bitnami/keycloak -n microcks \
-  --reuse-values \
-  --set keycloak.hostname=keycloak.<KEYCLOAK-EXTERNAL-IP>.nip.io \
-  --set keycloak.httpsEnabled=false
-```
-
-Visit http://keycloak.<KEYCLOAK-EXTERNAL-IP>.nip.io and create the Microcks realm, client, and user.
+- **Create a `microcks` realm** in Keycloak.
+- **Set up a `microcks` client** within that realm.
+- **Add a `microcks` user** and assign appropriate roles for accessing the Microcks dashboard.
 
 
 ## 8 Deploy Microcks on GKE
@@ -340,8 +283,8 @@ identity:
   provider: keycloak
   keycloak:
     url: "http://keycloak.<KEYCLOAK-EXTERNAL-IP>.nip.io" 
-    realm: "microcks"
-    clientId: "microcks-app"
+    realm: "<YOUR-REALM-NAME"
+    clientId: "YOUR-CLIENT-ID"
     clientSecret: "<CLIENT-SECRET>"
 
 postman:
@@ -361,13 +304,9 @@ EOF
 $ helm install microcks microcks/microcks -n microcks --create-namespace -f microcks.yaml
 ```
 
-### Verify Deployment
+### Verify Deployment and Check Pod Status
 ```sh
 $ kubectl get pods -n microcks
-```
-
-### Check Pod Status
-```sh
 $ kubectl describe pod <POD-NAME> -n microcks
 ```
 
@@ -393,18 +332,21 @@ Web Origins:
 ```
 
 ### Upgrade Helm Configuration
+#### Using nip.io
 ```sh
 $ helm upgrade microcks microcks/microcks -n microcks \
   --set microcks.url=microcks.<MICROCKS-EXTERNAL-IP>.nip.io \
   --set grpc.host=microcks-grpc.<GRPC-EXTERNAL-IP>.nip.io
 ```
 
-### Finalize URLs
+#### Using a Custom Domain
+If you have a custom domain, update your DNS provider to create an `A` record pointing to the external IP of Microcks.
 ```sh
 $ helm upgrade microcks microcks/microcks -n microcks \
-  --set microcks.url=http://microcks.<MICROCKS-EXTERNAL-IP>.nip.io \
-  --set grpc.host=microcks-grpc.<GRPC-EXTERNAL-IP>.nip.io
+  --set microcks.url=microcks.<your-custom-domain.com> \
+  --set grpc.host=microcks-grpc.<your-custom-domain.com>
 ```
+Ensure your domain's DNS settings correctly map to the external IP of your Microcks service by creating an **A Record** in your DNS provider.
 
 ### Access URLs:
 - **Microcks UI:** `http://microcks.<MICROCKS-EXTERNAL-IP>.nip.io`
