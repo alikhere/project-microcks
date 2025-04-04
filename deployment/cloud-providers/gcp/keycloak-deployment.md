@@ -275,7 +275,8 @@ $ helm upgrade keycloak bitnami/keycloak -n microcks \
 
 Ensure your domain's DNS settings correctly map to the external IP of your Keycloak service by creating an **A Record** in your DNS provider.
 
----
+Keycloak is available at `http://keycloak.<KEYCLOAK-EXTERNAL-IP>.nip.io`
+
 
 ## 7. Configure Keycloak for your Application
 
