@@ -1,8 +1,7 @@
 # Deploying Microcks on Google Kubernetes Engine (GKE)
 
 ## Overview
-This guide provides a step-by-step approach to deploying **Microcks** on **Google Kubernetes Engine (GKE)** using **Google Cloud SQL (PostgreSQL)**, **Firestore**, and integrating with **Keycloak** for authentication. It also includes configuring **Ingress** with **HTTP Load Balancer**.
-
+This guide provides a step-by-step approach to deploying **Microcks** on **Google Kubernetes Engine (GKE)** using **Google Cloud SQL (PostgreSQL)**, **Firestore**, and integrating with **Keycloak** for authentication.
 ## Prerequisites
 Before deploying Microcks on GKE, ensure the following tools are installed and configured:
 
@@ -35,7 +34,6 @@ Your Google Cloud project must be linked to a billing account. If you haven’t 
 
 Alternatively, enable billing using the command-line:
 ```sh
-$ gcloud beta billing projects describe <PROJECT-ID>
 $ gcloud beta billing accounts list
 $ gcloud beta billing projects link <PROJECT-ID> --billing-account=<BILLING-ACCOUNT-ID>
 $ gcloud beta billing projects describe <PROJECT-ID>
@@ -233,7 +231,7 @@ $ gcloud sql instances describe <INSTANCE-NAME> \
 
 Follow the [Keycloak deployment guide for GCP GKE](https://github.com/microcks/community/blob/main/install/gcp/keycloak-installation.md) provided by the Microcks community.
 
-Start from **Step 4** of the document and continue through the remaining steps to deploy Keycloak on your GKE cluster.
+Start from **Step 5** of the document and continue through the remaining steps to deploy Keycloak on your GKE cluster.
 
 Once Keycloak is successfully deployed, complete the following configuration:
 
@@ -334,18 +332,21 @@ Web Origins:
 ```
 
 ### Upgrade Helm Configuration
+#### Using nip.io
 ```sh
 $ helm upgrade microcks microcks/microcks -n microcks \
   --set microcks.url=microcks.<MICROCKS-EXTERNAL-IP>.nip.io \
   --set grpc.host=microcks-grpc.<GRPC-EXTERNAL-IP>.nip.io
 ```
 
-### Finalize URLs
+#### Using a Custom Domain
+If you have a custom domain, update your DNS provider to create an `A` record pointing to the external IP of Microcks.
 ```sh
 $ helm upgrade microcks microcks/microcks -n microcks \
-  --set microcks.url=http://microcks.<MICROCKS-EXTERNAL-IP>.nip.io \
-  --set grpc.host=microcks-grpc.<GRPC-EXTERNAL-IP>.nip.io
+  --set microcks.url=microcks.<your-custom-domain.com> \
+  --set grpc.host=microcks-grpc.<your-custom-domain.com>
 ```
+Ensure your domain's DNS settings correctly map to the external IP of your Microcks service by creating an **A Record** in your DNS provider.
 
 ### Access URLs:
 - **Microcks UI:** `http://microcks.<MICROCKS-EXTERNAL-IP>.nip.io`
