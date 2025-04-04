@@ -10,165 +10,405 @@ Before deploying Microcks on GKE, ensure that both the root user (admin) and the
 
 ---
 
-## Deployment Steps
 
-### 1. Authenticate with Google Cloud
-```sh
-gcloud auth login
-```
-```sh
-gcloud auth list
-```
 
-### 2. Create a New Google Cloud Project
-```sh
-gcloud projects create <your-project-id> --name="<your-project-name>"
-```
-```sh
-gcloud projects create microcks123 --name="cncf-microcks"
-```
-```sh
-gcloud projects list
-```
+## 1. Authenticate and Set Up GCP Project
 
-### 3. Set the Active Project
+### Authenticate and Configure GCP Project
+Run the following commands to log in, create a project, and set it as active. Replace `<PROJECT-ID>` and `<PROJECT-NAME>` with your details.
 ```sh
-gcloud config set project <your-project-id>
+$ gcloud auth login
+$ gcloud projects create <PROJECT-ID> --name="<PROJECT-NAME>"
+$ gcloud projects list
+$ gcloud config set project <PROJECT-ID>
 ```
-```sh
-gcloud config set project microcks123
-```
+For example, if your project name is **cncf-microcks** and project ID is **microcks333**, use these values accordingly.
 
-### 4. Enable Billing for Your Project
-#### Check if billing is enabled:
-```sh
-gcloud beta billing projects describe microcks123
-```
+### Enable Billing for Your Project
+Your Google Cloud project must be linked to a billing account. If you haven’t set up billing, follow these steps:
+- Go to **Google Cloud Console** → **Billing**.
+- Link an existing billing account or create a new one.
+- Once set up, link the billing account to your project.
 
-#### List available billing accounts:
+Alternatively, enable billing using the command-line:
 ```sh
-gcloud beta billing accounts list
+$ gcloud beta billing projects describe <PROJECT-ID>
+$ gcloud beta billing accounts list
+$ gcloud beta billing projects link <PROJECT-ID> --billing-account=<BILLING-ACCOUNT-ID>
+$ gcloud beta billing projects describe <PROJECT-ID>
 ```
+Once billing is enabled, you're ready to proceed with the next steps.
 
-#### Link the project to a billing account:
+
+## 2. Create Service Account and Assign Required Roles
+
+Create a service account for deploying Microcks. Replace `<SERVICE-ACCOUNT-NAME>`, `<SERVICE-ACCOUNT-DESCRIPTION>`, and `<PROJECT-ID>` with your values. For example, the service account name could be `microcks-deployer`, and the project ID could be `microcks333`.
+
 ```sh
-gcloud beta billing projects link microcks123 --billing-account=<your-billing-account-id>
+$ gcloud iam service-accounts create <SERVICE-ACCOUNT-NAME> \
+  --display-name "<SERVICE-ACCOUNT-DESCRIPTION>" \
+  --project <PROJECT-ID>
 ```
 
-#### Verify billing status:
-```sh
-gcloud beta billing projects describe microcks123
-```
+### Assign required roles to the service account:
 
-### 5. Create a Service Account for Deployment
 ```sh
-gcloud iam service-accounts create microcks-deployer \
-  --display-name "Microcks Deployer" \
-  --project microcks123
-```
-
-### 6. Assign Roles to the Service Account
-```sh
-gcloud projects add-iam-policy-binding microcks123 \
-  --member="serviceAccount:microcks-deployer@microcks123.iam.gserviceaccount.com" \
+$ gcloud projects add-iam-policy-binding <PROJECT-ID> \
+  --member="serviceAccount:<SERVICE-ACCOUNT-NAME>@<PROJECT-ID>.iam.gserviceaccount.com" \
   --role="roles/cloudsql.client"
-```
-```sh
-gcloud projects add-iam-policy-binding microcks123 \
-  --member="serviceAccount:microcks-deployer@microcks123.iam.gserviceaccount.com" \
+
+$ gcloud projects add-iam-policy-binding <PROJECT-ID> \
+  --member="serviceAccount:<SERVICE-ACCOUNT-NAME>@<PROJECT-ID>.iam.gserviceaccount.com" \
   --role="roles/cloudsql.admin"
-```
-```sh
-gcloud projects add-iam-policy-binding microcks123 \
-  --member="serviceAccount:microcks-deployer@microcks123.iam.gserviceaccount.com" \
+
+$ gcloud projects add-iam-policy-binding <PROJECT-ID> \
+  --member="serviceAccount:<SERVICE-ACCOUNT-NAME>@<PROJECT-ID>.iam.gserviceaccount.com" \
   --role="roles/serviceusage.serviceUsageAdmin"
-```
-```sh
-gcloud projects add-iam-policy-binding microcks123 \
-  --member="serviceAccount:microcks-deployer@microcks123.iam.gserviceaccount.com" \
+
+$ gcloud projects add-iam-policy-binding <PROJECT-ID> \
+  --member="serviceAccount:<SERVICE-ACCOUNT-NAME>@<PROJECT-ID>.iam.gserviceaccount.com" \
   --role="roles/datastore.user"
-```
-```sh
-gcloud projects add-iam-policy-binding microcks123 \
-  --member="serviceAccount:microcks-deployer@microcks123.iam.gserviceaccount.com" \
+
+$ gcloud projects add-iam-policy-binding <PROJECT-ID> \
+  --member="serviceAccount:<SERVICE-ACCOUNT-NAME>@<PROJECT-ID>.iam.gserviceaccount.com" \
   --role="roles/container.developer"
-```
-```sh
-gcloud projects add-iam-policy-binding microcks123 \
-  --member="serviceAccount:microcks-deployer@microcks123.iam.gserviceaccount.com" \
+
+$ gcloud projects add-iam-policy-binding <PROJECT-ID> \
+  --member="serviceAccount:<SERVICE-ACCOUNT-NAME>@<PROJECT-ID>.iam.gserviceaccount.com" \
   --role="roles/iam.serviceAccountUser"
 ```
 
-### 7. Create a Service Account Key
+### Create a Service Account Key
+Generate a key file for the service account. Replace `<PROJECT-ID>` with your actual GCP project ID before running the command.
+
 ```sh
-gcloud iam service-accounts keys create ~/microcks-deployer-key.json \
-  --iam-account=microcks-deployer@microcks123.iam.gserviceaccount.com
+$ gcloud iam service-accounts keys create /path/to/microcks-deployer-key.json \
+  --iam-account=microcks-deployer@<PROJECT-ID>.iam.gserviceaccount.com
 ```
 
-### 8. Enable Kubernetes Engine API
+## 3. Create a GKE Cluster
+
+### Enable Kubernetes Engine API
+
+Before creating a GKE cluster, enable the Kubernetes Engine API. This process takes 1-2 minutes.
+
 ```sh
-gcloud services enable container.googleapis.com --project=microcks123
+$ gcloud services enable container.googleapis.com --project=<PROJECT-ID>
 ```
 
-### 9. Create a GKE Cluster
+For example, if your project ID is **microcks333**, replace `<PROJECT-ID>` accordingly.
+
+### Create a GKE Cluster
+
+Create a Kubernetes cluster in the specified region with autoscaling enabled.
+
 ```sh
-gcloud container clusters create microcks-cluster \
+$ gcloud container clusters create <CLUSTER-NAME> \
   --zone us-central1-a \
-  --num-nodes=3 \
+  --machine-type e2-medium \
+  --num-nodes 2 \
+  --disk-size 50 \
   --enable-autoscaling \
-  --min-nodes=2 \
-  --max-nodes=6 \
+  --min-nodes 1 \
+  --max-nodes 4 \
   --enable-ip-alias \
-  --enable-network-policy
+  --enable-network-policy \
+  --service-account <SERVICE-ACCOUNT>@<PROJECT-ID>.iam.gserviceaccount.com
 ```
 
-### 10. Authenticate with the Service Account
+Wait for 7-8 minutes for the cluster to be provisioned and configure node count and disk size based on your usage or team size.
+
+### Authenticate with the Service Account
+
+Authenticate using the service account.
+
 ```sh
-gcloud auth activate-service-account --key-file=/home/alihere/microcks-deployer-key.json
+$ gcloud auth activate-service-account --key-file=/path/to/microcks-deployer-key.json
 ```
 
-### 11. Set the Project
+## 4. Enable Firestore API and Create a Firestore Database
+
+### Get Kubernetes Credentials for the Cluster and Verify Kubernetes Access
+
 ```sh
-gcloud config set project microcks123
+$ gcloud container clusters get-credentials <CLUSTER-NAME> --zone <CLUSTER-ZONE>
+$ kubectl get nodes
 ```
 
-### 12. Get Kubernetes Credentials and Verify Access
+### Set the Project to Ensure the Correct Project is Used
+
 ```sh
-gcloud container clusters get-credentials microcks-cluster --zone us-central1-a
-```
-```sh
-kubectl get nodes
+$ gcloud config set project <PROJECT-ID>
 ```
 
-### 13. Add the Microcks Helm Chart Repository
+### Enable Firestore API and Create Firestore Database in Native Mode
+
 ```sh
-helm repo add microcks https://microcks.io/helm
-```
-```sh
-helm repo update
+$ gcloud services enable firestore.googleapis.com --project=<PROJECT-ID>
+$ gcloud firestore databases create --location=us-central1 --project=<PROJECT-ID>
 ```
 
-### 14. Create a Cloud SQL Instance
+## 5. Create a Cloud SQL Instance and Database
+
+### Create a Cloud SQL Instance
+
 ```sh
-gcloud sql instances create microcks-cloudsql \
+$ gcloud sql instances create <INSTANCE-NAME> \
   --database-version=POSTGRES_14 \
   --tier=db-f1-micro \
   --region=us-central1 \
-  --root-password=microcks123 \
-  --project=microcks123
+  --root-password=<ROOT-PASSWORD> \
+  --project=<PROJECT-ID>
 ```
 
-### 15. Create a Database and Get Cloud SQL Connection Name
+Wait for 10-11 minutes for the instance to be provisioned.
+
+### Create a Database
+
 ```sh
-gcloud sql databases create microcks --instance=microcks-cloudsql --project=microcks123
-```
-```sh
-gcloud sql instances describe microcks-cloudsql --format="value(connectionName)"
+$ gcloud sql databases create <DATABASE-NAME> --instance=<INSTANCE-NAME> --project=<PROJECT-ID>
 ```
 
-### 16. Enable Firestore API and Create Firestore Database
+### Create a User
+
 ```sh
-gcloud services enable firestore.googleapis.com --project=microcks123
+$ gcloud sql users create <USERNAME> \
+  --instance=<INSTANCE-NAME> \
+  --password=<USER-PASSWORD> \
+  --project=<PROJECT-ID>
 ```
+
+For example, project ID microcks333, instance name microcks-cloudsql, database name keycloak_db and username keycloak_user.
+
+## 6. Setting Up Private Connectivity Between GKE and Cloud SQL
+
+### Enable Service Networking API
+
 ```sh
-gcloud firestore databases create --location=us-central1 --project=microcks123
+$ gcloud services enable servicenetworking.googleapis.com --project=<PROJECT-ID>
+```
+
+### Allocate IP Range
+
+```sh
+$ gcloud compute addresses create google-managed-services-default \
+  --global \
+  --purpose=VPC_PEERING \
+  --prefix-length=16 \
+  --network=default \
+  --project=<PROJECT-ID>
+```
+
+### Create VPC Peering
+
+```sh
+$ gcloud services vpc-peerings connect \
+  --service=servicenetworking.googleapis.com \
+  --ranges=google-managed-services-default \
+  --network=default \
+  --project=<PROJECT-ID>
+```
+
+### Assign Private IP to Cloud SQL
+
+```sh
+$ gcloud sql instances patch <INSTANCE-NAME> \
+  --network=default \
+  --assign-ip \
+  --project=<PROJECT-ID>
+```
+
+### Get Private IP of Cloud SQL Instance
+
+```sh
+$ gcloud sql instances describe <INSTANCE-NAME> \
+  --format="value(ipAddresses)" \
+  --project=<PROJECT-ID>
+```
+
+## 7. Deploy Keycloak on GKE with Cloud SQL
+
+### Add Keycloak Helm Repository
+
+```sh
+$ helm repo add bitnami https://charts.bitnami.com/bitnami
+$ helm repo update
+```
+
+### Prepare `keycloak.yaml` Configuration File
+
+```sh
+$ cat > keycloak.yaml <<EOF
+auth:
+  adminUser: admin
+  adminPassword: "<ADMIN-PASSWORD>"
+
+postgresql:
+  enabled: false
+
+externalDatabase:
+  host: "<CLOUDSQL-PRIVATE-IP>"
+  port: 5432
+  database: "<DATABASE-NAME>"
+  user: "<USERNAME>"
+  password: "<USER-PASSWORD>"
+  scheme: "postgresql"
+
+service:
+  type: LoadBalancer
+
+resources:
+  requests:
+    cpu: "500m"
+    memory: "512Mi"
+  limits:
+    cpu: "1"
+    memory: "1Gi"
+EOF
+```
+
+### Install Keycloak
+
+```sh
+$ helm install keycloak bitnami/keycloak -f keycloak.yaml -n microcks --create-namespace
+```
+
+### Check Pod Status
+
+```sh
+$ kubectl get pods -n microcks -l app.kubernetes.io/name=keycloak
+```
+
+### Get External IP of Keycloak
+
+```sh
+$ kubectl get svc -n microcks keycloak -o wide
+```
+
+### Upgrade Keycloak with nip.io Hostname
+
+```sh
+$ helm upgrade keycloak bitnami/keycloak -n microcks \
+  --reuse-values \
+  --set keycloak.hostname=keycloak.<KEYCLOAK-EXTERNAL-IP>.nip.io \
+  --set keycloak.httpsEnabled=false
+```
+
+Visit http://keycloak.<KEYCLOAK-EXTERNAL-IP>.nip.io and create the Microcks realm, client, and user.
+
+
+## 8 Deploy Microcks on GKE
+
+### Add Microcks Helm Repository
+```sh
+$ helm repo add microcks https://microcks.io/helm
+$ helm repo update
+```
+
+### Prepare `microcks.yaml` Configuration File
+```sh
+$ cat > microcks.yaml <<EOF
+microcks:
+  url: "microcks.autoip.nip.io"
+  resources: {}
+
+service:
+  type: LoadBalancer
+  port: 8080
+  annotations:
+    cloud.google.com/load-balancer-type: "External"
+
+grpc:
+  enabled: true
+  service:
+    type: LoadBalancer
+    port: 9090
+    annotations:
+      cloud.google.com/load-balancer-type: "External"
+
+mongodb:
+  enabled: false
+  persistence:
+    enabled: false
+
+keycloak:
+  enabled: false  
+  postgresql:
+    enabled: false 
+
+identity:
+  provider: keycloak
+  keycloak:
+    url: "http://keycloak.<KEYCLOAK-EXTERNAL-IP>.nip.io" 
+    realm: "microcks"
+    clientId: "microcks-app"
+    clientSecret: "<CLIENT-SECRET>"
+
+postman:
+  enabled: true
+  resources: {}
+
+env:
+  - name: MICROCKS_APP_STORAGE_TYPE
+    value: "firestore"
+  - name: GCP_PROJECT_ID
+    value: "<GCP-PROJECT-ID>"
+EOF
+```
+
+### Install Microcks on GKE
+```sh
+$ helm install microcks microcks/microcks -n microcks --create-namespace -f microcks.yaml
+```
+
+### Verify Deployment
+```sh
+$ kubectl get pods -n microcks
+```
+
+### Check Pod Status
+```sh
+$ kubectl describe pod <POD-NAME> -n microcks
+```
+
+### Get External IPs for Microcks and gRPC
+```sh
+$ kubectl get svc -n microcks
+```
+
+### Update Keycloak Configuration
+#### Login to Keycloak and Navigate to Client Configuration
+1. Select **Realm Settings** → `microcks`
+2. Go to **Clients** → `microcks-app`
+
+### Update Security Settings
+```yaml
+Valid Redirect URIs:
+  http://microcks.<MICROCKS-EXTERNAL-IP>.nip.io/*
+  http://microcks-grpc.<GRPC-EXTERNAL-IP>.nip.io/*
+
+Web Origins:
+  http://microcks.<MICROCKS-EXTERNAL-IP>.nip.io
+  http://microcks-grpc.<GRPC-EXTERNAL-IP>.nip.io
+```
+
+### Upgrade Helm Configuration
+```sh
+$ helm upgrade microcks microcks/microcks -n microcks \
+  --set microcks.url=microcks.<MICROCKS-EXTERNAL-IP>.nip.io \
+  --set grpc.host=microcks-grpc.<GRPC-EXTERNAL-IP>.nip.io
+```
+
+### Finalize URLs
+```sh
+$ helm upgrade microcks microcks/microcks -n microcks \
+  --set microcks.url=http://microcks.<MICROCKS-EXTERNAL-IP>.nip.io \
+  --set grpc.host=microcks-grpc.<GRPC-EXTERNAL-IP>.nip.io
+```
+
+### Access URLs:
+- **Microcks UI:** `http://microcks.<MICROCKS-EXTERNAL-IP>.nip.io`
+- **gRPC:** `http://microcks-grpc.<GRPC-EXTERNAL-IP>.nip.io`
+
+🎉 **Congratulations! You have successfully deployed Microcks on GKE. Now, you can start using Microcks to mock and test your APIs seamlessly in your cloud environment.**
+
