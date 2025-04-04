@@ -1,72 +1,305 @@
-## 14.A Create Database
+# Deploying Keycloak on Google Kubernetes Engine (GKE)
+
+## Overview
+This guide walks you through deploying Keycloak on Google Kubernetes Engine (GKE) using Google Cloud SQL database. Keycloak is an open-source identity and access management solution that enables secure authentication and authorization for applications.
+
+
+
+## Prerequisites
+Ensure the following tools are installed on your local system:
+
+1. **Google Cloud SDK (gcloud):** [Install Guide](https://cloud.google.com/sdk/docs/install)
+2. **Helm:** [Install Guide](https://helm.sh/docs/intro/install/)
+3. **kubectl (Kubernetes CLI):** [Install Guide](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
+
+---
+
+## 1. Authenticate and Set Up GCP Project
+
+### Authenticate with Google Cloud
+```sh
+$ gcloud auth login
+```
+
+### Create and Configure GCP Project
+```sh
+$ gcloud projects create <PROJECT-ID> --name="<PROJECT-NAME>"
+$ gcloud config set project <PROJECT-ID>
+```
+For example, if your project name is **cncf-microcks** and project ID is **microcks333**, use these values accordingly.
+
+### Enable Billing (if not already enabled)
+```sh
+$ gcloud beta billing accounts list
+$ gcloud beta billing projects link <PROJECT-ID> --billing-account=<BILLING-ACCOUNT-ID>
+```
+
+---
+
+## 2. Create Service Account and Assign Required Roles
+
+Create a service account for deploying Microcks. Replace `<SERVICE-ACCOUNT-NAME>`, `<SERVICE-ACCOUNT-DESCRIPTION>`, and `<PROJECT-ID>` with your values. For example, the service account name could be `microcks-deployer`, and the project ID could be `microcks333`.
 
 ```sh
-gcloud sql databases create keycloak_db --instance=microcks-cloudsql --project=microcks123
+$ gcloud iam service-accounts create <SERVICE-ACCOUNT-NAME> \
+  --display-name "<SERVICE-ACCOUNT-DESCRIPTION>" \
+  --project <PROJECT-ID>
+```
 
-# Create user with correct password
-gcloud sql users create keycloak_user \
-  --instance=microcks-cloudsql \
-  --password=microcks123 \
-  --project=microcks123
+### Assign Required Roles
+```sh
+$ gcloud projects add-iam-policy-binding <PROJECT-ID> \
+  --member="serviceAccount:keycloak-deployer@<PROJECT-ID>.iam.gserviceaccount.com" \
+  --role="roles/cloudsql.client"
 
-# Enable Service Networking API
-gcloud services enable servicenetworking.googleapis.com --project=microcks123
+$ gcloud projects add-iam-policy-binding <PROJECT-ID> \
+  --member="serviceAccount:keycloak-deployer@<PROJECT-ID>.iam.gserviceaccount.com" \
+  --role="roles/cloudsql.admin"
 
-# Allocate IP range
-gcloud compute addresses create google-managed-services-default \
+$ gcloud projects add-iam-policy-binding <PROJECT-ID> \
+  --member="serviceAccount:keycloak-deployer@<PROJECT-ID>.iam.gserviceaccount.com" \
+  --role="roles/container.developer"
+
+$ gcloud projects add-iam-policy-binding <PROJECT-ID> \
+  --member="serviceAccount:keycloak-deployer@<PROJECT-ID>.iam.gserviceaccount.com" \
+  --role="roles/iam.serviceAccountUser"
+```
+
+### Create Service Account Key
+```sh
+$ gcloud iam service-accounts keys create /path/to/keycloak-deployer-key.json \
+  --iam-account=keycloak-deployer@<PROJECT-ID>.iam.gserviceaccount.com
+```
+
+## 3. Create a GKE Cluster
+
+### Enable Kubernetes Engine API
+
+Before creating a GKE cluster, enable the Kubernetes Engine API. This process takes 1-2 minutes.
+
+```sh
+$ gcloud services enable container.googleapis.com --project=<PROJECT-ID>
+```
+
+For example, if your project ID is **microcks333**, replace `<PROJECT-ID>` accordingly.
+
+### Create a GKE Cluster
+
+Create a Kubernetes cluster in the specified region with autoscaling enabled.
+
+```sh
+$ gcloud container clusters create <CLUSTER-NAME> \
+  --zone us-central1-a \
+  --machine-type e2-medium \
+  --num-nodes 2 \
+  --disk-size 50 \
+  --enable-autoscaling \
+  --min-nodes 1 \
+  --max-nodes 3 \
+  --enable-ip-alias \
+  --enable-network-policy \
+  --service-account <SERVICE-ACCOUNT>@<PROJECT-ID>.iam.gserviceaccount.com
+```
+
+Wait for 7-8 minutes for the cluster to be provisioned and configure node count and disk size based on your usage or team size.
+
+### Authenticate with the Service Account
+
+Authenticate using the service account.
+
+```sh
+$ gcloud auth activate-service-account --key-file=/path/to/microcks-deployer-key.json
+```
+
+## 4. Create a Cloud SQL Instance and Database
+
+### Set the Project to Ensure the Correct Project is Used
+
+```sh
+$ gcloud config set project <PROJECT-ID>
+```
+
+### Create a Cloud SQL Instance
+
+```sh
+$ gcloud sql instances create <INSTANCE-NAME> \
+  --database-version=POSTGRES_14 \
+  --tier=db-f1-micro \
+  --region=us-central1 \
+  --root-password=<ROOT-PASSWORD> \
+  --project=<PROJECT-ID>
+```
+
+Wait for 10-11 minutes for the instance to be provisioned.
+
+### Create a Database
+
+```sh
+$ gcloud sql databases create <DATABASE-NAME> --instance=<INSTANCE-NAME> --project=<PROJECT-ID>
+```
+
+### Create a User
+
+```sh
+$ gcloud sql users create <USERNAME> \
+  --instance=<INSTANCE-NAME> \
+  --password=<USER-PASSWORD> \
+  --project=<PROJECT-ID>
+```
+
+For example, project ID microcks333, instance name microcks-cloudsql, database name keycloak_db and username keycloak_user.
+
+## 5. Setting Up Private Connectivity Between GKE and Cloud SQL
+
+### Enable Service Networking API
+
+```sh
+$ gcloud services enable servicenetworking.googleapis.com --project=<PROJECT-ID>
+```
+
+### Allocate IP Range
+
+```sh
+$ gcloud compute addresses create google-managed-services-default \
   --global \
   --purpose=VPC_PEERING \
   --prefix-length=16 \
   --network=default \
-  --project=microcks123
+  --project=<PROJECT-ID>
+```
 
-# Create VPC peering
-gcloud services vpc-peerings connect \
+### Create VPC Peering
+
+```sh
+$ gcloud services vpc-peerings connect \
   --service=servicenetworking.googleapis.com \
   --ranges=google-managed-services-default \
   --network=default \
-  --project=microcks123
-
-# Assign private IP to Cloud SQL
-gcloud sql instances patch microcks-cloudsql \
-  --network=default \
-  --assign-ip \
-  --project=microcks123
-
-# Get private IP
-gcloud sql instances describe microcks-cloudsql \
-  --format="value(ipAddresses)" \
-  --project=microcks123
+  --project=<PROJECT-ID>
 ```
 
-## 14.B Create `values-keycloak.yaml`
+### Assign Private IP to Cloud SQL
 
-```yaml
+```sh
+$ gcloud sql instances patch <INSTANCE-NAME> \
+  --network=default \
+  --assign-ip \
+  --project=<PROJECT-ID>
+```
+
+### Get Private IP of Cloud SQL Instance
+
+```sh
+$ gcloud sql instances describe <INSTANCE-NAME> \
+  --format="value(ipAddresses)" \
+  --project=<PROJECT-ID>
+```
+
+## 6. Deploy Keycloak on GKE with Cloud SQL
+
+### Add Keycloak Helm Repository
+
+```sh
+$ helm repo add bitnami https://charts.bitnami.com/bitnami
+$ helm repo update
+```
+
+### Prepare `keycloak.yaml` Configuration File
+
+```sh
+$ cat > keycloak.yaml <<EOF
 auth:
   adminUser: admin
-  adminPassword: microcks321  # for login keycloak as admin
+  adminPassword: "<ADMIN-PASSWORD>"
 
 postgresql:
-  enabled: false  # Disable embedded DB
+  enabled: false
 
 externalDatabase:
-  host: "$CLOUD_SQL_PRIVATE_IP"  # e.g., 10.23.0.3
+  host: "<CLOUDSQL-PRIVATE-IP>"
   port: 5432
-  user: "keycloak_user"
-  password: "microcks123"  # Matches Cloud SQL user
-  database: "keycloak_db"
+  database: "<DATABASE-NAME>"
+  user: "<USERNAME>"
+  password: "<USER-PASSWORD>"
+  scheme: "postgresql"
 
 service:
   type: LoadBalancer
+
+resources:
+  requests:
+    cpu: "500m"
+    memory: "512Mi"
+  limits:
+    cpu: "1"
+    memory: "1Gi"
+EOF
 ```
 
-## Deploy Keycloak
+### Install Keycloak
 
 ```sh
-helm install keycloak bitnami/keycloak -f values-keycloak.yaml -n microcks --create-namespace
+$ helm install keycloak bitnami/keycloak -f keycloak.yaml -n microcks --create-namespace
+```
 
-# Check pod status (wait for 1/1 READY)
-kubectl get pods -n microcks -l app.kubernetes.io/name=keycloak
+### Check Pod Status
 
-# Get LoadBalancer external IP of Keycloak and visit the URL to login
-kubectl get svc -n microcks keycloak -o wide
+```sh
+$ kubectl get pods -n microcks -l app.kubernetes.io/name=keycloak
+```
+
+### Get External IP of Keycloak
+
+```sh
+$ kubectl get svc -n microcks keycloak -o wide
+```
+
+### Upgrade Keycloak with Custom Domain or nip.io Hostname
+
+### Using nip.io Hostname
+```sh
+$ helm upgrade keycloak bitnami/keycloak -n microcks \
+  --reuse-values \
+  --set keycloak.hostname=keycloak.<KEYCLOAK-EXTERNAL-IP>.nip.io \
+  --set keycloak.httpsEnabled=false
+```
+
+### Using a Custom Domain
+If you have a custom domain, update your DNS provider to create an `A` record pointing to the external IP of Keycloak.
+```sh
+$ helm upgrade keycloak bitnami/keycloak -n microcks \
+  --reuse-values \
+  --set keycloak.hostname=auth.<your-custom-domain.com> \
+  --set keycloak.httpsEnabled=true
+```
+
+Ensure your domain's DNS settings correctly map to the external IP of your Keycloak service by creating an **A Record** in your DNS provider.
+
+---
+
+## 7. Configure Keycloak for your Application
+
+### Step 1: Create a Microcks Realm
+- Login to the Keycloak dashboard at `http://keycloak.<KEYCLOAK-EXTERNAL-IP>.nip.io`
+- Click on `Create Realm` in the top left corner and name it `microcks`.
+
+### Step 2: Add a Client for Microcks
+- From the left menu, go to `Clients`.
+- Click `Create` and enter the `Client ID` (e.g., `microcks-app`).
+- Enable `Client authentication`.
+- Click `Next`.
+- In `Valid Redirect URIs`, enter your application URL (e.g., `http://my-application.com/*`).
+- In `Web Origins`, enter `http://my-application.com`.
+- If you have not deployed your application yet, you can configure this later.
+
+![Keycloak Client Configuration](https://github.com/microcks/community/blob/main/assets/images/keycloak-user-credentials.png)
+
+### Step 3: Create a User
+- From the left menu, go to `Users`.
+- Click `Add User` and enter a `Username` and `Email`.
+- Click `Save`.
+- Go to the `Credentials` tab, set a password, and save it.
+
+![Keycloak User Creation](https://github.com/microcks/community/blob/main/assets/images/keycloak-client-auth.png)
+
+🎉 Congratulations! You have successfully deployed Keycloak on Google Kubernetes Engine (GKE) with Cloud SQL database.
