@@ -286,8 +286,7 @@ Ensure your domain's DNS settings correctly map to the external IP of your Keycl
 ### Step 2: Add a Client for Microcks
 - From the left menu, go to `Clients`.
 - Click `Create` and enter the `Client ID` (e.g., `microcks-app`).
-- Enable `Client authentication`.
-- Click `Next`.
+- Enable `Client authentication` and Click `Next`
 - In `Valid Redirect URIs`, enter your application URL (e.g., `http://my-application.com/*`).
 - In `Web Origins`, enter `http://my-application.com`.
 - If you have not deployed your application yet, you can configure this later.
@@ -296,8 +295,7 @@ Ensure your domain's DNS settings correctly map to the external IP of your Keycl
 
 ### Step 3: Create a User
 - From the left menu, go to `Users`.
-- Click `Add User` and enter a `Username` and `Email`.
-- Click `Save`.
+- Click `Add User` and enter a `Username`, `Email` and Click `Save`.
 - Go to the `Credentials` tab, set a password, and save it.
 
 ![Keycloak User Creation](https://github.com/microcks/community/blob/main/assets/images/keycloak-client-auth.png)
