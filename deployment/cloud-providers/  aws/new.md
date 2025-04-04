@@ -88,7 +88,7 @@ $ gcloud iam service-accounts keys create /path/to/microcks-deployer-key.json \
 
 ## 3. Create a GKE Cluster
 
-## Enable Kubernetes Engine API
+### Enable Kubernetes Engine API
 
 Before creating a GKE cluster, enable the Kubernetes Engine API. This process takes 1-2 minutes.
 
@@ -98,7 +98,7 @@ $ gcloud services enable container.googleapis.com --project=<PROJECT-ID>
 
 For example, if your project ID is **microcks333**, replace `<PROJECT-ID>` accordingly.
 
-## Create a GKE Cluster
+### Create a GKE Cluster
 
 Create a Kubernetes cluster in the specified region with autoscaling enabled.
 
@@ -118,10 +118,297 @@ $ gcloud container clusters create <CLUSTER-NAME> \
 
 Wait for 7-8 minutes for the cluster to be provisioned.
 
-## Authenticate with the Service Account
+### Authenticate with the Service Account
 
 Authenticate using the service account key to access the GKE cluster.
 
 ```sh
 $ gcloud auth activate-service-account --key-file=/path/to/microcks-deployer-key.json
+```
+
+## 4. Enable Firestore API and Create a Firestore Database
+
+### Get Kubernetes Credentials for the Cluster and Verify Kubernetes Access
+
+```sh
+$ gcloud container clusters get-credentials <CLUSTER-NAME> --zone <CLUSTER-ZONE>
+$ kubectl get nodes
+```
+
+### Set the Project to Ensure the Correct Project is Used
+
+```sh
+$ gcloud config set project <PROJECT-ID>
+```
+
+### Enable Firestore API and Create Firestore Database in Native Mode
+
+```sh
+$ gcloud services enable firestore.googleapis.com --project=<PROJECT-ID>
+$ gcloud firestore databases create --location=us-central1 --project=<PROJECT-ID>
+```
+
+## 5. Create a Cloud SQL Instance and Database
+
+### Create a Cloud SQL Instance
+
+```sh
+$ gcloud sql instances create <INSTANCE-NAME> \
+  --database-version=POSTGRES_14 \
+  --tier=db-f1-micro \
+  --region=us-central1 \
+  --root-password=<ROOT-PASSWORD> \
+  --project=<PROJECT-ID>
+```
+
+Wait for 10-11 minutes for the instance to be provisioned.
+
+### Create a Database
+
+```sh
+$ gcloud sql databases create <DATABASE-NAME> --instance=<INSTANCE-NAME> --project=<PROJECT-ID>
+```
+
+### Create a User
+
+```sh
+$ gcloud sql users create <USERNAME> \
+  --instance=<INSTANCE-NAME> \
+  --password=<USER-PASSWORD> \
+  --project=<PROJECT-ID>
+```
+
+For example, project ID microcks333, instance name microcks-cloudsql, database name keycloak_db and username keycloak_user.
+
+## 6. Setting Up Private Connectivity Between GKE and Cloud SQL
+
+### Enable Service Networking API
+
+```sh
+$ gcloud services enable servicenetworking.googleapis.com --project=<PROJECT-ID>
+```
+
+### Allocate IP Range
+
+```sh
+$ gcloud compute addresses create google-managed-services-default \
+  --global \
+  --purpose=VPC_PEERING \
+  --prefix-length=16 \
+  --network=default \
+  --project=<PROJECT-ID>
+```
+
+### Create VPC Peering
+
+```sh
+$ gcloud services vpc-peerings connect \
+  --service=servicenetworking.googleapis.com \
+  --ranges=google-managed-services-default \
+  --network=default \
+  --project=<PROJECT-ID>
+```
+
+### Assign Private IP to Cloud SQL
+
+```sh
+$ gcloud sql instances patch <INSTANCE-NAME> \
+  --network=default \
+  --assign-ip \
+  --project=<PROJECT-ID>
+```
+
+### Get Private IP of Cloud SQL Instance
+
+```sh
+$ gcloud sql instances describe <INSTANCE-NAME> \
+  --format="value(ipAddresses)" \
+  --project=<PROJECT-ID>
+```
+
+## 7. Deploy Keycloak on GKE with Cloud SQL
+
+### Add Keycloak Helm Repository
+
+```sh
+$ helm repo add bitnami https://charts.bitnami.com/bitnami
+$ helm repo update
+```
+
+### Prepare `keycloak.yaml` Configuration File
+
+```sh
+$ cat > keycloak.yaml <<EOF
+auth:
+  adminUser: admin
+  adminPassword: "<ADMIN-PASSWORD>"
+
+postgresql:
+  enabled: false
+
+externalDatabase:
+  host: "<CLOUDSQL-PRIVATE-IP>"
+  port: 5432
+  database: "<DATABASE-NAME>"
+  user: "<USERNAME>"
+  password: "<USER-PASSWORD>"
+  scheme: "postgresql"
+
+service:
+  type: LoadBalancer
+
+resources:
+  requests:
+    cpu: "500m"
+    memory: "512Mi"
+  limits:
+    cpu: "1"
+    memory: "1Gi"
+EOF
+```
+
+### Install Keycloak
+
+```sh
+$ helm install keycloak bitnami/keycloak -f keycloak.yaml -n microcks --create-namespace
+```
+
+### Check Pod Status
+
+```sh
+$ kubectl get pods -n microcks -l app.kubernetes.io/name=keycloak
+```
+
+### Get External IP of Keycloak
+
+```sh
+$ kubectl get svc -n microcks keycloak -o wide
+```
+
+### Upgrade Keycloak with nip.io Hostname
+
+```sh
+$ helm upgrade keycloak bitnami/keycloak -n microcks \
+  --reuse-values \
+  --set keycloak.hostname=keycloak.<KEYCLOAK-EXTERNAL-IP>.nip.io \
+  --set keycloak.httpsEnabled=false
+```
+
+Visit http://keycloak.<KEYCLOAK-EXTERNAL-IP>.nip.io and create the Microcks realm, client, and user.
+
+
+## 8 Deploy Microcks on GKE
+
+### Add Microcks Helm Repository
+```sh
+$ helm repo add microcks https://microcks.io/helm
+$ helm repo update
+```
+
+### Prepare `microcks.yaml` Configuration File
+```sh
+$ cat > microcks.yaml <<EOF
+microcks:
+  url: "microcks.autoip.nip.io"
+  resources: {}
+
+service:
+  type: LoadBalancer
+  port: 8080
+  annotations:
+    cloud.google.com/load-balancer-type: "External"
+
+grpc:
+  enabled: true
+  service:
+    type: LoadBalancer
+    port: 9090
+    annotations:
+      cloud.google.com/load-balancer-type: "External"
+
+mongodb:
+  enabled: false
+  persistence:
+    enabled: false
+
+keycloak:
+  enabled: false  
+  postgresql:
+    enabled: false 
+
+identity:
+  provider: keycloak
+  keycloak:
+    url: "http://keycloak.<KEYCLOAK-EXTERNAL-IP>.nip.io" 
+    realm: "microcks"
+    clientId: "microcks-app"
+    clientSecret: "<CLIENT-SECRET>"
+
+postman:
+  enabled: true
+  resources: {}
+
+env:
+  - name: MICROCKS_APP_STORAGE_TYPE
+    value: "firestore"
+  - name: GCP_PROJECT_ID
+    value: "<GCP-PROJECT-ID>"
+EOF
+```
+
+### Install Microcks on GKE
+```sh
+$ helm install microcks microcks/microcks -n microcks --create-namespace -f microcks.yaml
+```
+
+### Verify Deployment
+```sh
+$ kubectl get pods -n microcks
+```
+
+### Check Pod Status
+```sh
+$ kubectl describe pod <POD-NAME> -n microcks
+```
+
+### Get External IPs for Microcks and gRPC
+```sh
+$ kubectl get svc -n microcks
+```
+
+### Update Keycloak Configuration
+#### Login to Keycloak and Navigate to Client Configuration
+1. Select **Realm Settings** → `microcks`
+2. Go to **Clients** → `microcks-app`
+
+### Update Security Settings
+```yaml
+Valid Redirect URIs:
+  http://microcks.<MICROCKS-EXTERNAL-IP>.nip.io/*
+  http://microcks-grpc.<GRPC-EXTERNAL-IP>.nip.io/*
+
+Web Origins:
+  http://microcks.<MICROCKS-EXTERNAL-IP>.nip.io
+  http://microcks-grpc.<GRPC-EXTERNAL-IP>.nip.io
+```
+
+### Upgrade Helm Configuration
+```sh
+$ helm upgrade microcks microcks/microcks -n microcks \
+  --set microcks.url=microcks.<MICROCKS-EXTERNAL-IP>.nip.io \
+  --set grpc.host=microcks-grpc.<GRPC-EXTERNAL-IP>.nip.io
+```
+
+### Finalize URLs
+```sh
+$ helm upgrade microcks microcks/microcks -n microcks \
+  --set microcks.url=http://microcks.<MICROCKS-EXTERNAL-IP>.nip.io \
+  --set grpc.host=microcks-grpc.<GRPC-EXTERNAL-IP>.nip.io
+```
+
+### Access URLs:
+- **Microcks UI:** `http://microcks.<MICROCKS-EXTERNAL-IP>.nip.io`
+- **gRPC:** `http://microcks-grpc.<GRPC-EXTERNAL-IP>.nip.io`
+
+🎉 **Congratulations! You have successfully deployed Microcks on GKE. Now, you can start using Microcks to mock and test your APIs seamlessly in your cloud environment.**
 
