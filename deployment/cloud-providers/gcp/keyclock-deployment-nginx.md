@@ -283,7 +283,7 @@ kubectl get ingress -n microcks
 
 --- OUTPUT ---
 NAME               CLASS   HOSTS                           ADDRESS         PORTS   AGE
-keycloak-ingress   nginx   keycloak.34.28.103.121.nip.io   34.28.103.121   80      7d21h
+keycloak-ingress   nginx   keycloak.34.28.102.121.nip.io   34.28.103.121   80      7d21h
 
 ```
 
