@@ -190,6 +190,7 @@ $ gcloud sql instances describe <INSTANCE-NAME> \
 ```sh
 $ helm repo add bitnami https://charts.bitnami.com/bitnami
 $ helm repo update
+$ $ kubectl create namespace microcks
 ```
 
 ### Prepare `keycloak.yaml` Configuration File
@@ -228,7 +229,7 @@ EOF
 
 ### Install Keycloak and check Pod Status
 ```sh
-$ helm install keycloak bitnami/keycloak -f keycloak.yaml
+$ helm install keycloak bitnami/keycloak -f keycloak.yaml --namespace microcks
 $ kubectl get pods -l app.kubernetes.io/name=keycloak
 ```
 
@@ -238,7 +239,7 @@ $ helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
 $ helm repo update
 
 $ helm install ingress-nginx ingress-nginx/ingress-nginx \
-  --namespace ingress-nginx \
+  --namespace microcks \
   --create-namespace \
   --set controller.service.type=LoadBalancer \
   --set controller.config."proxy-buffer-size"="128k"
@@ -246,7 +247,7 @@ $ helm install ingress-nginx ingress-nginx/ingress-nginx \
 
 ### Get External IP of Ingress Controller Once available, export it
 ```
-$ kubectl get svc -n ingress-nginx ingress-nginx-controller -w
+$ kubectl get svc -n ingress-nginx ingress-nginx-controller
 $ export INGRESS_IP=$(kubectl -n ingress-nginx get svc ingress-nginx-controller -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
 ```
 
@@ -276,18 +277,23 @@ spec:
 EOF
 ```
 
-### Verify Ingress and Access Keycloak
+### Verify Ingress and Get the Ingress External IP
 ```
-$ kubectl get ingress
+kubectl get ingress -n microcks
+
+--- OUTPUT ---
+NAME               CLASS   HOSTS                           ADDRESS         PORTS   AGE
+keycloak-ingress   nginx   keycloak.34.28.103.121.nip.io   34.28.103.121   80      7d21h
+
 ```
 
-Keycloak is available at `http://keycloak.<EXTERNAL-IP>.nip.io`
+Keycloak is available at `http://keycloak.<INGRESS_IP>.nip.io`
 
 
 ## 7. Configure Keycloak for your Application
 
 ### Step 1: Create a Microcks Realm
-- Login to the Keycloak dashboard at `http://keycloak.<EXTERNAL-IP>.nip.io`
+- Login to the Keycloak dashboard at `http://keycloak.<INGRESS_IP>.nip.io`
 - Click on `Create Realm` in the top left corner and name it `microcks`.
 
 ### Step 2: Add a Client for Microcks
