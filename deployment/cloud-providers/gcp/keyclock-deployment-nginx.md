@@ -1,5 +1,5 @@
 
-# Deploying Keycloak on Google Kubernetes Engine (GKE)/
+# Deploying Keycloak on Google Kubernetes Engine (GKE)
 
 ## Overview
 This guide walks you through deploying Keycloak on Google Kubernetes Engine (GKE) using Google Cloud SQL database. Keycloak is an open-source identity and access management solution that enables secure authentication and authorization for applications.
