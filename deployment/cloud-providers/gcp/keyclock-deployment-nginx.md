@@ -230,7 +230,7 @@ EOF
 ### Install Keycloak and check Pod Status
 ```sh
 $ helm install keycloak bitnami/keycloak -f keycloak.yaml --namespace microcks
-$ kubectl get pods -l app.kubernetes.io/name=keycloak
+$ kubectl get pods -n microcks
 ```
 
 ### Install NGINX Ingress Controller.
