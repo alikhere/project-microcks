@@ -43,7 +43,7 @@ Once billing is enabled, you're ready to proceed with the next steps.
 
 ## 2. Create Service Account and Assign Required Roles
 
-Create a service account for deploying Microcks. Replace `<SERVICE-ACCOUNT-NAME>`, `<SERVICE-ACCOUNT-DESCRIPTION>`, and `<PROJECT-ID>` with your values. For example, the service account name could be `microcks-deployer`, and the project ID could be `microcks333`.
+If you're working in an enterprise or company environment where you don't have access to an admin account, request the admin user to create the service account and grant the following roles. Once the service account is created and the key file (secret) is provided by the admin/root user, you can authenticate and proceed with the setup as the service account.
 
 ```sh
 $ gcloud iam service-accounts create <SERVICE-ACCOUNT-NAME> \
@@ -68,10 +68,6 @@ $ gcloud projects add-iam-policy-binding <PROJECT-ID> \
 
 $ gcloud projects add-iam-policy-binding <PROJECT-ID> \
   --member="serviceAccount:<SERVICE-ACCOUNT-NAME>@<PROJECT-ID>.iam.gserviceaccount.com" \
-  --role="roles/datastore.user"
-
-$ gcloud projects add-iam-policy-binding <PROJECT-ID> \
-  --member="serviceAccount:<SERVICE-ACCOUNT-NAME>@<PROJECT-ID>.iam.gserviceaccount.com" \
   --role="roles/container.developer"
 
 $ gcloud projects add-iam-policy-binding <PROJECT-ID> \
@@ -84,7 +80,7 @@ Generate a key file for the service account. Replace `<PROJECT-ID>` with your ac
 
 ```sh
 $ gcloud iam service-accounts keys create /path/to/microcks-deployer-key.json \
-  --iam-account=microcks-deployer@<PROJECT-ID>.iam.gserviceaccount.com
+  --iam-account=<SERVICE-ACCOUNT-NAME>@<PROJECT-ID>.iam.gserviceaccount.com
 ```
 
 ## 3. Create a GKE Cluster
@@ -119,37 +115,35 @@ $ gcloud container clusters create <CLUSTER-NAME> \
 
 Wait for 7-8 minutes for the cluster to be provisioned and configure node count and disk size based on your usage or team size.
 
-### Authenticate with the Service Account
+> **Note:** If you are deploying Microcks **with asynchronous options enabled**, only then run the following two commands:
 
-Authenticate using the service account.
+```bash
+# Authenticate your local `kubectl` with the GKE cluster
+
+$ gcloud container clusters get-credentials microcks-cluster \
+  --zone us-central1-a \
+  --project microcks123
+
+# Grant cluster-admin permissions to the Microcks deployer service account
+$ kubectl create clusterrolebinding microcks-deployer-admin \
+  --clusterrole=cluster-admin \
+  --user="<SERVICE-ACCOUNT-NAME>@microcks123.iam.gserviceaccount.com"
+```
+
+### Authenticate with the Service Account
 
 ```sh
 $ gcloud auth activate-service-account --key-file=/path/to/microcks-deployer-key.json
 ```
 
-## 4. Enable Firestore API and Create a Firestore Database
-
-### Get Kubernetes Credentials for the Cluster and Verify Kubernetes Access
+### Configure Access to Your GKE Cluster
 
 ```sh
 $ gcloud container clusters get-credentials <CLUSTER-NAME> --zone <CLUSTER-ZONE>
-$ kubectl get nodes
-```
-
-### Set the Project to Ensure the Correct Project is Used
-
-```sh
 $ gcloud config set project <PROJECT-ID>
 ```
 
-### Enable Firestore API and Create Firestore Database in Native Mode
-
-```sh
-$ gcloud services enable firestore.googleapis.com --project=<PROJECT-ID>
-$ gcloud firestore databases create --location=us-central1 --project=<PROJECT-ID>
-```
-
-## 5. Create a Cloud SQL Instance and Database
+## 4. Create a Cloud SQL Instance and Database
 
 ### Create a Cloud SQL Instance
 
@@ -181,7 +175,7 @@ $ gcloud sql users create <USERNAME> \
 
 For example, project ID microcks333, instance name microcks-cloudsql, database name keycloak_db and username keycloak_user.
 
-## 6. Setting Up Private Connectivity Between GKE and Cloud SQL
+## 5. Setting Up Private Connectivity Between GKE and Cloud SQL
 
 ### Enable Service Networking API
 
@@ -227,7 +221,7 @@ $ gcloud sql instances describe <INSTANCE-NAME> \
   --project=<PROJECT-ID>
 ```
 
-## 7. Deploy Keycloak on GKE with Cloud SQL
+## 6. Deploy Keycloak on GKE with Cloud SQL
 
 Follow the [Keycloak deployment guide for GCP GKE](https://github.com/microcks/community/blob/main/install/gcp/keycloak-installation.md) provided by the Microcks community.
 
@@ -239,6 +233,37 @@ Once Keycloak is successfully deployed, complete the following configuration:
 - **Set up a `microcks` client** within that realm.
 - **Add a `microcks` user** and assign appropriate roles for accessing the Microcks dashboard.
 
+## 7. Deploy External MongoDB on GKE
+### Add Bitnami Helm Chart Repository and Install MongoDB
+
+```sh
+$ helm repo add bitnami https://charts.bitnami.com/bitnami
+
+$ helm install mongodb bitnami/mongodb -n microcks \
+  --set architecture=standalone \
+  --set persistence.enabled=true \
+  --set persistence.size=10Gi \
+  --set persistence.storageClass=standard \
+  --set resources.requests.cpu=500m \
+  --set resources.requests.memory=1Gi \
+  --set resources.limits.cpu=1 \
+  --set resources.limits.memory=2Gi \
+  --set auth.enabled=true \
+  --set auth.rootPassword=<ROOT_PASSWORD> \
+  --set auth.username=<USERNAME> \
+  --set auth.password=<PASSWORD> \
+  --set auth.database=<DATABASE>
+```
+
+### Verify MongoDB Deployment
+
+```sh
+$ kubectl get pods -n microcks
+--- OUTPUT ---
+NAME                                        READY   STATUS    RESTARTS        AGE
+keycloak-0                                  1/1     Running   0               1d2h
+mongodb-69d8b98df-q5vl2                     1/1     Running   0               2m
+```
 
 ## 8 Deploy Microcks on GKE
 
