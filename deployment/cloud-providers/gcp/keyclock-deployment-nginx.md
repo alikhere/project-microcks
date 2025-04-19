@@ -190,8 +190,110 @@ $ gcloud sql instances describe <INSTANCE-NAME> \
 ```sh
 $ helm repo add bitnami https://charts.bitnami.com/bitnami
 $ helm repo update
-$ $ kubectl create namespace microcks
+$ kubectl create namespace microcks
 ```
+
+### Install NGINX Ingress Controller.
+```sh
+$ helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+$ helm repo update
+
+$ helm install ingress-nginx ingress-nginx/ingress-nginx \
+  --namespace ingress-nginx \
+  --create-namespace \
+  --set controller.service.type=LoadBalancer \
+  --set controller.config."proxy-buffer-size"="128k"
+```
+
+### Get External IP of Ingress Controller Once Available
+```sh
+$ kubectl get svc -n ingress-nginx ingress-nginx-controller
+--- OUTPUT ---
+NAME                       TYPE           CLUSTER-IP       EXTERNAL-IP     PORT(S)                      AGE
+ingress-nginx-controller   LoadBalancer   34.118.229.104   <INGRESS_IP>   80:31477/TCP,443:31478/TCP   14d
+```
+
+### Custom Domain
+1. If You Have a Custom Domain Create and A record in your DNS provider to point your domain/subdomain to the INGRESS IP. 
+For example:
+- keycloak.<YOUR-DOMAIN>.com pointing to <INGRESS_IP>
+- keycloak.<YOUR-DOMAIN>.com pointing to <INGRESS_IP>
+
+2. If you don't have a custom domain, you can use a free domain by using nip.io for your domain names, such as:
+- keycloak.<INGRESS_IP>.nip.io
+- microcks.<INGRESS_IP>.nip.io
+
+###  Install cert-manager for SSL Certificates
+```sh
+$ helm repo add jetstack https://charts.jetstack.io
+$ helm repo update
+$ helm install cert-manager jetstack/cert-manager --namespace cert-manager --create-namespace --set installCRDs=true
+```
+
+### Create ClusterIssuer for Let's Encrypt
+```sh
+cat <<EOF | kubectl apply -f -
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-prod
+spec:
+  acme:
+    server: https://acme-v02.api.letsencrypt.org/directory
+    email: <your-email@example.com>   # Update with your email address
+    privateKeySecretRef:
+      name: letsencrypt-prod
+    solvers:
+    - http01:
+        ingress:
+          class: nginx
+EOF
+```
+### Prepare `keycloak.yaml` Configuration File
+
+```sh
+$ cat > keycloak.yaml <<EOF
+auth:
+  adminUser: admin
+  adminPassword: "microcks123"  # Set a strong password
+
+postgresql:
+  enabled: false  # Disable embedded PostgreSQL
+
+externalDatabase:
+  host: "<CLOUDSQL-PRIVATE-IP>"            # Cloud SQL private IP
+  port: 5432
+  database: "<DATABASE-NAME>"       # Cloud SQL database name
+  user: "<USER-PASSWORD>"        # Cloud SQL username
+  password: "<USER-PASSWORD>"      # Cloud SQL password
+  scheme: "postgresql"
+
+service:
+  type: ClusterIP
+  ports:
+    http: 80  
+
+resources:
+  requests:
+    cpu: "500m"
+    memory: "512Mi"
+  limits:
+    cpu: "1"
+    memory: "1Gi"
+
+ingress:
+  enabled: true
+  ingressClassName: nginx
+  hostname: keycloak.<YOUR-DOMAIN>.com   # Replace <YOUR-DOMAIN> with your custom domain
+  annotations:
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+  tls: true
+EOF
+```
+
+
+
 
 ### Prepare `keycloak.yaml` Configuration File
 
@@ -233,17 +335,7 @@ $ helm install keycloak bitnami/keycloak -f keycloak.yaml --namespace microcks
 $ kubectl get pods -n microcks
 ```
 
-### Install NGINX Ingress Controller.
-```sh
-$ helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
-$ helm repo update
 
-$ helm install ingress-nginx ingress-nginx/ingress-nginx \
-  --namespace ingress-nginx \
-  --create-namespace \
-  --set controller.service.type=LoadBalancer \
-  --set controller.config."proxy-buffer-size"="128k"
-```
 
 ### Get External IP of Ingress Controller Once available, export it
 ```
