@@ -38,12 +38,12 @@ $ gcloud beta billing projects link <PROJECT-ID> --billing-account=<BILLING-ACCO
 ---
 
 ## 2. Create Service Account and Assign Required Roles
+If you're working in an enterprise or company environment where you don't have access to an admin account, request the admin user to create the service account and grant the following roles. Once the service account is created and the key file (secret) is provided by the admin/root user, you can authenticate and proceed with the setup as the service account.
 
-Create a service account for deploying Microcks. Replace `<SERVICE-ACCOUNT-NAME>`, `<SERVICE-ACCOUNT-DESCRIPTION>`, and `<PROJECT-ID>` with your values. For example, the service account name could be `microcks-deployer`, and the project ID could be `microcks333`.
-
+### Create the service account for Keycloak deployment
 ```sh
-$ gcloud iam service-accounts create <SERVICE-ACCOUNT-NAME> \
-  --display-name "<SERVICE-ACCOUNT-DESCRIPTION>" \
+$ gcloud iam service-accounts create keycloak-deployer \
+  --display-name "Keycloak Deployer" \
   --project <PROJECT-ID>
 ```
 
@@ -104,7 +104,7 @@ $ gcloud container clusters create <CLUSTER-NAME> \
 
 Wait for 7-8 minutes for the cluster to be provisioned and configure node count and disk size based on your usage or team size.
 
-### Authenticate with the Service Account
+### Authenticate with the Service Accountb
 
 Authenticate using the service account.
 
@@ -210,14 +210,14 @@ $ helm install ingress-nginx ingress-nginx/ingress-nginx \
 $ kubectl get svc -n ingress-nginx ingress-nginx-controller
 --- OUTPUT ---
 NAME                       TYPE           CLUSTER-IP       EXTERNAL-IP     PORT(S)                      AGE
-ingress-nginx-controller   LoadBalancer   34.118.229.104   <INGRESS_IP>   80:31477/TCP,443:31478/TCP   14d
+ingress-nginx-controller   LoadBalancer   34.118.229.104   <INGRESS_IP>   80:31477/TCP,443:31478/TCP    3m
 ```
 
 ### Custom Domain
 1. If You Have a Custom Domain Create and A record in your DNS provider to point your domain/subdomain to the INGRESS IP. 
 For example:
-- keycloak.<YOUR-DOMAIN>.com pointing to <INGRESS_IP>
-- keycloak.<YOUR-DOMAIN>.com pointing to <INGRESS_IP>
+- keycloak.YOUR-DOMAIN.com pointing to <INGRESS_IP>
+- microcks.YOUR-DOMAIN.com pointing to <INGRESS_IP>
 
 2. If you don't have a custom domain, you can use a free domain by using nip.io for your domain names, such as:
 - keycloak.<INGRESS_IP>.nip.io
@@ -232,7 +232,7 @@ $ helm install cert-manager jetstack/cert-manager --namespace cert-manager --cre
 
 ### Create ClusterIssuer for Let's Encrypt
 ```sh
-cat <<EOF | kubectl apply -f -
+$ cat <<EOF | kubectl apply -f -
 apiVersion: cert-manager.io/v1
 kind: ClusterIssuer
 metadata:
@@ -261,11 +261,11 @@ postgresql:
   enabled: false  # Disable embedded PostgreSQL
 
 externalDatabase:
-  host: "<CLOUDSQL-PRIVATE-IP>"            # Cloud SQL private IP
+  host: "<CLOUDSQL-PRIVATE-IP>"            # Your Cloud SQL private IP
   port: 5432
-  database: "<DATABASE-NAME>"       # Cloud SQL database name
-  user: "<USER-PASSWORD>"        # Cloud SQL username
-  password: "<USER-PASSWORD>"      # Cloud SQL password
+  database: "<DATABASE-NAME>"       # Your Cloud SQL database name
+  user: "<USER-PASSWORD>"        # Your Cloud SQL username
+  password: "<USER-PASSWORD>"      # Your Cloud SQL password
   scheme: "postgresql"
 
 service:
@@ -292,108 +292,38 @@ ingress:
 EOF
 ```
 
-
-
-
-### Prepare `keycloak.yaml` Configuration File
-
-```sh
-$ cat > keycloak.yaml <<EOF
-auth:
-  adminUser: admin
-  adminPassword: "<ADMIN-PASSWORD>"
-
-postgresql:
-  enabled: false
-
-externalDatabase:
-  host: "<CLOUDSQL-PRIVATE-IP>"
-  port: 5432
-  database: "<DATABASE-NAME>"
-  user: "<USERNAME>"
-  password: "<USER-PASSWORD>"
-  scheme: "postgresql"
-
-service:
-  type: ClusterIP
-  ports:
-    http: 80
-
-resources:
-  requests:
-    cpu: "500m"
-    memory: "512Mi"
-  limits:
-    cpu: "1"
-    memory: "1Gi"
-EOF
-```
-
 ### Install Keycloak and check Pod Status
 ```sh
 $ helm install keycloak bitnami/keycloak -f keycloak.yaml --namespace microcks
 $ kubectl get pods -n microcks
-```
-
-
-
-### Get External IP of Ingress Controller Once available, export it
-```
-$ kubectl get svc -n ingress-nginx ingress-nginx-controller
-$ export INGRESS_IP=$(kubectl -n ingress-nginx get svc ingress-nginx-controller -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
-```
-
-### Create and Apply Ingress Resource to Expose Keycloak
-```
-$ cat <<EOF | kubectl apply -f -
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: keycloak-ingress
-  annotations:
-    nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
-    nginx.ingress.kubernetes.io/proxy-buffer-size: "128k"
-spec:
-  ingressClassName: nginx
-  rules:
-  - host: keycloak.$INGRESS_IP.nip.io
-    http:
-      paths:
-      - path: /
-        pathType: Prefix
-        backend:
-          service:
-            name: keycloak
-            port:
-              number: 80
-EOF
-```
-
-### Verify Ingress and Get the Ingress External IP
-```
-kubectl get ingress -n microcks
-
 --- OUTPUT ---
-NAME               CLASS   HOSTS                           ADDRESS         PORTS   AGE
-keycloak-ingress   nginx   keycloak.34.28.102.121.nip.io   34.28.103.121   80      7d21h
-
+NAME                                        READY   STATUS    RESTARTS        AGE
+keycloak-0                                  1/1     Running   0               1m
 ```
 
-Keycloak is available at `http://keycloak.<INGRESS_IP>.nip.io`
+### Verify Ingress and Get the Keycloak URL
+```sh
+$ kubectl get ingress -n microcks
+--- OUTPUT ---
+NAME       CLASS   HOSTS                           ADDRESS         PORTS     AGE
+keycloak   nginx   keycloak.<YOUR-DOMAIN>.com   34.28.103.121      80, 443   3m
+```
+
+Keycloak is available at `http://keycloak.<YOUR-DOMAIN>.com`
 
 
 ## 7. Configure Keycloak for your Application
 
 ### Step 1: Create a Microcks Realm
-- Login to the Keycloak dashboard at `http://keycloak.<INGRESS_IP>.nip.io`
+- Login to the Keycloak dashboard at `http://keycloak.<YOUR-DOMAIN>.com`
 - Click on `Create Realm` in the top left corner and name it `microcks`.
 
 ### Step 2: Add a Client for Microcks
 - From the left menu, go to `Clients`.
-- Click `Create` and enter the `Client ID` (e.g., `microcks-app`).
+- Click `Create` and enter the `Client ID` (e.g., `microcks-app-js`).
 - Enable `Client authentication` and Click `Next`
-- In `Valid Redirect URIs`, enter your application URL (e.g., `http://my-application.com/*`).
-- In `Web Origins`, enter `http://my-application.com`.
+- In `Valid Redirect URIs`, enter your application URL (e.g., `http://microcks.<YOUR-DOMAIN>.com/*`).
+- In `Web Origins`, enter `http://microcks.<YOUR-DOMAIN>.com`.
 - If you have not deployed your application yet, you can configure this later.
 
 ### Step 3: Create a User
