@@ -364,9 +364,9 @@ mongodb-69d8b98df-q5vl2                     1/1     Running   0               1h
 $ kubectl get ingress -n microcks
 --- OUTPUT ---
 NAME            CLASS   HOSTS                                 ADDRESS         PORTS     AGE
-keycloak        nginx   keycloak.<YOUR-DOMAIN>.com             <INGRESS-IP>    80, 443   2h9m
-microcks        nginx   microcks.<YOUR-DOMAIN>.com             <INGRESS-IP>    80, 443   3m17s
-microcks-grpc   nginx   microcks-grpc.<YOUR-DOMAIN>.com        <INGRESS-IP>    80, 443   3m17s
+keycloak        nginx   keycloak.<YOUR-DOMAIN>.com            <INGRESS-IP>    80, 443   2h9m
+microcks        nginx   microcks.<YOUR-DOMAIN>.com            <INGRESS-IP>    80, 443   3m17s
+microcks-grpc   nginx   microcks-grpc.<YOUR-DOMAIN>.com       <INGRESS-IP>    80, 443   3m17s
 ```
 Microcks is available at: `https://microcks.<YOUR-DOMAIN>.com` gRPC mock service is available at: `microcks-grpc.<YOUR-DOMAIN>.com`
 
