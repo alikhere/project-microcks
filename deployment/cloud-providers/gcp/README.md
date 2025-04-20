@@ -1,7 +1,8 @@
 # Deploying Microcks on Google Kubernetes Engine (GKE)
 
 ## Overview
-This guide provides a step-by-step approach to deploying **Microcks** on **Google Kubernetes Engine (GKE)** using **Google Cloud SQL (PostgreSQL)**, **Firestore**, and integrating with **Keycloak** for authentication.
+This guide provides a comprehensive, step-by-step process for deploying **Microcks** on **Google Kubernetes Engine (GKE)**, leveraging **Google Cloud SQL (PostgreSQL)** for database management. It also covers the integration of **External MongoDB** for data storage and **Keycloak** for authentication, enabling a secure and scalable API testing environment in the cloud.
+
 ## Prerequisites
 Before deploying Microcks on GKE, ensure the following tools are installed and configured:
 
