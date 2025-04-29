@@ -63,9 +63,19 @@ In this section, you will set up the foundational cloud resources required for M
         * Ensure it's configured to be accessible from your Kubernetes cluster (see Networking step below).
         * **Note the connection string, database name, username, and password.**
     * **Option B: Deploying External MongoDB on Kubernetes:**
-        * If a suitable managed service is not available or preferred, you will deploy a MongoDB instance directly onto your Kubernetes cluster using a standard Helm chart (like Bitnami's). You will configure it to use persistent storage suitable for your cloud provider. You will deploy this later in the process using a generic Helm values file.
+        * If a suitable managed service is not available or preferred, you will deploy a MongoDB instance directly onto your Kubernetes cluster using a standard Helm chart (like Bitnami's). You will configure it to use persistent storage suitable for your cloud provider.
 
-6.  **Establish Private Network Connectivity:**
+6.  **Create MongoDB Connection Secret:**
+
+    Create a Kubernetes `Secret` containing the username and password for your MongoDB instance. Replace the placeholder values with the actual credentials obtained from your cloud provider (for managed     service) or your MongoDB deployment process (for on-K8s deployment).
+
+    ```bash
+    $ kubectl create secret generic microcks-mongodb-connection -n microcks \
+      --from-literal=username=<YOUR-MONGODB-USERNAME> \
+      --from-literal=password=<YOUR-MONGODB-PASSWORD>
+    ```
+
+7.  **Establish Private Network Connectivity:**
     * Configure networking to ensure secure, private communication between:
         * Your Kubernetes cluster nodes and the Managed PostgreSQL instance.
         * Your Kubernetes cluster nodes and the Managed MongoDB instance (if using Option A in step 5).
@@ -210,19 +220,10 @@ In this section, you deploy common components necessary for Microcks and Keycloa
 
 ### 4. Deploy Microcks with Default Options
 
-1.  **Create MongoDB Connection Secret:**
+1.  **Prepare Microcks Helm Values:**
 
-    Create a Kubernetes `Secret` containing the username and password for your MongoDB instance. Replace the placeholder values with the actual credentials obtained from your cloud provider (for managed service) or your MongoDB deployment process (for on-K8s deployment).
-
-    ```bash
-    $ kubectl create secret generic microcks-mongodb-connection -n microcks \
-      --from-literal=username=<YOUR-MONGODB-USERNAME> \
-      --from-literal=password=<YOUR-MONGODB-PASSWORD>
-    ```
-
-3.  **Prepare Microcks Helm Values:**
-
-    Create a Helm values file (e.g., `microcks-values.yaml`) to configure the Microcks Helm chart. This template uses the `mongodb.secretRef` pattern to securely pass credentials. Replace the placeholder values with your actual details.
+    Create a Helm values file (e.g., `microcks-values.yaml`) to configure the Microcks Helm chart. This template uses the `mongodb.secretRef` pattern to securely pass credentials. Replace the          
+    placeholder values with your actual details.
 
     ```bash
     $ cat > microcks-values.yaml <<EOF
@@ -276,13 +277,13 @@ In this section, you deploy common components necessary for Microcks and Keycloa
     EOF
     ```
 
-5.  **Deploy Microcks:**
+2.  **Deploy Microcks:**
 
     ```bash
     $ helm install microcks microcks/microcks -n microcks -f microcks-values.yaml
     ```
 
-6.  **Verify Pod Status and Get Microcks Ingress URL:**
+3.  **Verify Pod Status and Get Microcks Ingress URL:**
    
     ```bash
     $ kubectl get pods -n microcks
@@ -304,15 +305,16 @@ If you require support for asynchronous protocols (like Kafka), follow these add
       -p '[{"op":"add","path":"/spec/template/spec/containers/0/args/-","value":"--enable-ssl-passthrough"}]'
     ```
 
-3.  **Install Strimzi Operator for Kafka Support:**
+2.  **Install Strimzi Operator for Kafka Support:**
 
     ```bash
     $ kubectl apply -f 'https://strimzi.io/install/latest?namespace=microcks' -n microcks
     ```
 
-4.  **Prepare Microcks Helm Values (for Async):**
+3.  **Prepare Microcks Helm Values (for Async):**
 
-    Create a new Helm values file (e.g., `microcks-async-values.yaml`), starting from your `microcks-values.yaml`. Modify it to enable asynchronous features and configure Kafka. This template assumes you want to install Kafka via the Microcks chart using Strimzi.
+    Create a new Helm values file (e.g., `microcks-async-values.yaml`), starting from your `microcks-values.yaml`. Modify it to enable asynchronous features and configure Kafka. This template assumes    
+    you want to install Kafka via the Microcks chart using Strimzi.
 
     ```bash
     $ cat > microcks-async-values.yaml <<EOF
@@ -380,8 +382,8 @@ If you require support for asynchronous protocols (like Kafka), follow these add
     # If upgrading an existing Microcks deployment:
     $ helm upgrade microcks microcks/microcks -n microcks -f microcks-async-values.yaml
 
-    # If deploying Microcks for the first time with async enabled:
-    # $ helm install microcks microcks/microcks -n microcks -f microcks-async-values.yaml
+    If deploying Microcks for the first time with async enabled:
+    $ helm install microcks microcks/microcks -n microcks -f microcks-async-values.yaml
     ```
 
 8.  **Verify Pod Status and Get Microcks Ingress URL:**
