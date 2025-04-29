@@ -3,7 +3,18 @@
 ## Overview
 This document provides a common guideline for deploying Microcks in production-grade cloud environments using managed Kubernetes services and leveraging cloud-native backing services. It serves as a framework adaptable to various cloud providers (**AWS**, **GCP**, **Azure**, **OVH**, **Oracle**, **Scaleway**, or **Koyeb**, etc.).
 
-The goal is to foster a collaborative repository of best practices, allowing users to understand the necessary steps and apply them using their chosen cloud provider's tools and services. This guide focuses on **what** needs to be done, leaving the **how** (specific commands and cloud console steps) to be implemented by the user based on their cloud provider's documentation and the community-contributed provider-specific examples.
+The goal is to guide users through the deployment process by emphasizing the use of external Keycloak for authentication, native PostgreSQL-compatible databases for data management, and the deployment of Microcks via Helm charts. While the specific cloud provider implementations may vary (e.g., cloud provider-managed services like databases), the document focuses on the essential steps required, leaving the precise configuration and commands to be adapted based on the user’s cloud provider’s tools, documentation, and community-contributed examples.
+
+## Key Deployment Architecture:
+
+This guideline assumes a deployment architecture utilizing:
+
+* **Managed Kubernetes Service:** Your cloud provider's managed Kubernetes offering (e.g., Amazon EKS, Google GKE, Azure AKS).
+* **External Keycloak:** Keycloak deployed separately (ideally on the managed Kubernetes cluster) using a managed PostgreSQL-compatible database.
+* **Managed PostgreSQL-Compatible Database:** Your cloud provider's managed relational database service configured for PostgreSQL (e.g., Amazon RDS for PostgreSQL, Google Cloud SQL for PostgreSQL, Azure Database for PostgreSQL). This will be used by Keycloak.
+* **MongoDB Solution:** A suitable MongoDB solution. This could be:
+    * Your cloud provider's managed MongoDB-compatible service (e.g., Amazon DocumentDB for MongoDB Compatibility, Azure Cosmos DB for MongoDB API), *if* fully compatible with Microcks.
+    * An external MongoDB instance deployed on your managed Kubernetes cluster (e.g., using a Helm chart like Bitnami's MongoDB chart), if a suitable managed service is not available or preferred.
 
 ## Prerequisites
 
