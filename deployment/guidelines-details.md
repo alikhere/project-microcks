@@ -63,7 +63,27 @@ In this section, you will set up the foundational cloud resources required for M
         * Ensure it's configured to be accessible from your Kubernetes cluster (see Networking step below).
         * **Note the connection string, database name, username, and password.**
     * **Option B: Deploying External MongoDB on Kubernetes:**
-        * If a suitable managed service is not available or preferred, you will deploy a MongoDB instance directly onto your Kubernetes cluster using a standard Helm chart (like Bitnami's). You will configure it to use persistent storage suitable for your cloud provider.
+        - If a suitable managed service is not available or preferred, you will deploy a MongoDB instance directly onto your Kubernetes cluster using a standard Helm chart (like Bitnami's). You will configure it to use persistent storage suitable for your cloud provider.
+        - Add Bitnami Helm Chart Repository and Install MongoDB
+
+         ```bash
+         $ helm repo add bitnami https://charts.bitnami.com/bitnami
+         
+         $ helm install mongodb bitnami/mongodb -n microcks \
+           --set architecture=standalone \
+           --set persistence.enabled=true \
+           --set persistence.size=10Gi \
+           --set persistence.storageClass=standard \
+           --set resources.requests.cpu=500m \
+           --set resources.requests.memory=1Gi \
+           --set resources.limits.cpu=1 \
+           --set resources.limits.memory=2Gi \
+           --set auth.enabled=true \
+           --set auth.rootPassword=<ROOT_PASSWORD> \
+           --set auth.username=<USERNAME> \
+           --set auth.password=<PASSWORD> \
+           --set auth.database=<DATABASE>
+         ```
 
 6.  **Create MongoDB Connection Secret:**
 
