@@ -394,6 +394,10 @@ If you require support for asynchronous protocols (like Kafka), follow these add
             nginx.ingress.kubernetes.io/proxy-body-size: "50m"
             # Note: ssl-passthrough is often required for Kafka protocols via Ingress
             nginx.ingress.kubernetes.io/ssl-passthrough: "true"
+
+    ingress:
+      enabled: true
+      tls: true    
     EOF
     ```
 
