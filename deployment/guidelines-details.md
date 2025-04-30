@@ -29,7 +29,7 @@ Before starting, ensure you have the following tools installed and configured lo
 
 Follow these steps, adapting the specific cloud provider commands and procedures as needed.
 
-### 1. Prepare Cloud Infrastructure and Backing Services
+## 1. Prepare Cloud Infrastructure and Backing Services
 
 In this section, you will set up the foundational cloud resources required for Microcks using your cloud provider's specific tools and console.
 
@@ -81,7 +81,7 @@ In this section, you will set up the foundational cloud resources required for M
         * Your Kubernetes cluster nodes and the Managed MongoDB instance (if using Option A in step 5).
     * This typically involves configuring VPCs, subnets, private endpoints, peering, and security groups/firewalls using your cloud provider's networking tools.
 
-### 2. Deploy Shared Services on Kubernetes
+## 2. Deploy Shared Services on Kubernetes
 
 In this section, you deploy common components necessary for Microcks and Keycloak within your Kubernetes cluster using standard Helm and kubectl commands.
 
@@ -151,7 +151,7 @@ In this section, you deploy common components necessary for Microcks and Keycloa
     EOF
     ```
 
-### 3. Deploy and Configure External Keycloak
+## 3. Deploy and Configure External Keycloak
 
 1.  **Prepare Keycloak Helm Values:**
 
@@ -218,7 +218,7 @@ In this section, you deploy common components necessary for Microcks and Keycloa
         * Set up a client for Microcks within that realm (e.g., **`microcks-app-js`**). Configure Valid Redirect URIs and Web Origins for your Microcks hostname (e.g., `https://microcks.<YOUR-DOMAIN/IP.nip.io>/*`).
         * Create a user (or users) and assign them appropriate roles (e.g., `user`, `admin`) for accessing the Microcks dashboard within the **`microcks`** realm.
 
-### 4. Deploy Microcks with Default Options
+## 4. Deploy Microcks with Default Options
 
 1.  **Prepare Microcks Helm Values:**
 
@@ -290,9 +290,10 @@ In this section, you deploy common components necessary for Microcks and Keycloa
     $ kubectl get ingress -n microcks
     ```
     
+    * Microcks is available at: `microcks.<YOUR-DOMAIN/IP.nip.io>` gRPC mock service is available at: `microcks-grpc.<YOUR-DOMAIN/IP.nip.io>`
     * Access the Microcks UI via your configured hostname and log in using the user created in Keycloak.
 
-### 5. Deploy Microcks with Asynchronous Options
+## 5. Deploy Microcks with Asynchronous Options
 
 If you require support for asynchronous protocols (like Kafka), follow these additional steps.
 
@@ -376,7 +377,7 @@ If you require support for asynchronous protocols (like Kafka), follow these add
     EOF
     ```
 
-6.  **Deploy Microcks:**
+4.  **Deploy Microcks:**
    
     ```bash
     # If upgrading an existing Microcks deployment:
@@ -386,13 +387,14 @@ If you require support for asynchronous protocols (like Kafka), follow these add
     $ helm install microcks microcks/microcks -n microcks -f microcks-async-values.yaml
     ```
 
-8.  **Verify Pod Status and Get Microcks Ingress URL:**
+5.  **Verify Pod Status and Get Microcks Ingress URL:**
 
     ```bash
     $ kubectl get pods -n microcks
     $ kubectl get ingress -n microcks
     ```
-    
+
+    * Microcks is available at: `microcks.<YOUR-DOMAIN/IP.nip.io>` gRPC mock service is available at: `microcks-grpc.<YOUR-DOMAIN/IP.nip.io>` Kafka broker is available at: `microcks-kafka.kafka.<YOUR-DOMAIN/IP.nip.io>`
     * Access the Microcks UI and confirm asynchronous mocking/testing capabilities.
 
 ## Contributing to the Community: Post-Deployment Insights
