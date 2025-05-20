@@ -1,4 +1,4 @@
-# Deploying Microcks on Azure Kubernetes Service (AKS) with External Keycloak, PostgreSQL, and Cosmos DB
+hi# Deploying Microcks on Azure Kubernetes Service (AKS) with External Keycloak, PostgreSQL, and Cosmos DB
 
 This document provides a step-by-step guide for deploying Microcks on Azure Kubernetes Service (AKS). The deployment integrates with an external Keycloak for authentication, Azure Database for PostgreSQL for Keycloak's data, and Azure Cosmos DB (MongoDB API) for Microcks' data.
 
@@ -66,7 +66,4 @@ Log in using the Service Principal to authenticate and perform actions from the 
 
 ```bash
 az login --service-principal -u <appId> -p <password> --tenant <tenant>
-
-## Example:
-az login --service-principal -u 00000000-0000-0000-0000-000000000000 -p "your-sp-password" --tenant 00000000-0000-0000-0000-000000000000
 ```
