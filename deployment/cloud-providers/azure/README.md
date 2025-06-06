@@ -152,22 +152,3 @@ az aks get-credentials --resource-group microcks-rg --name microcks-cluster
 # Verify cluster access
 kubectl get nodes
 ```
-
-## 6. Install Ingress Controller
-Install Ingress Nginx for routing and traffic management:
-
-```sh
-# Add ingress-nginx Helm repository
-helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
-helm repo update
-
-# Install ingress-nginx
-helm install ingress-nginx ingress-nginx/ingress-nginx \
-  --namespace ingress-nginx \
-  --create-namespace \
-  --set controller.service.type=LoadBalancer \
-  --set controller.config."proxy-buffer-size"="128k"
-
-# Get external IP (wait a few minutes if not immediately available)
-kubectl get svc -n ingress-nginx ingress-nginx-controller -o jsonpath='{.status.loadBalancer.ingress[0].ip}'
-```
