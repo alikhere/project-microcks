@@ -1,23 +1,20 @@
 # Microcks Deployment on Azure Kubernetes Service (AKS)
 
-This guide will walk you through deploying **Microcks** on **Azure Kubernetes Service (AKS)** with **Azure Database for PostgreSQL** for Keycloak authentication, along with an external MongoDB instance.
+## Overview
+This documentation provides a step-by-step guide to deploying **Microcks**, an API mocking and testing solution, on **Azure Kubernetes Service (AKS)**. It also integrates **Keycloak** for authentication via **Azure Database for PostgreSQL**, and utilizes **MongoDB** for storage. This solution allows you to mock APIs, manage microservices effectively, and test with a reliable cloud infrastructure.
 
 ---
 
 ## Prerequisites
 Before you begin, ensure you have the following installed:
 
-1. **Azure CLI**: For managing Azure resources.  
-   [Azure CLI Installation Guide](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli)
+1. **Azure CLI**: For managing Azure resources: [Azure CLI Installation Guide](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli)
 
-2. **kubectl**: For interacting with your Kubernetes cluster.  
-   [kubectl Installation Guide](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
+2. **kubectl**: For interacting with your Kubernetes cluster: [kubectl Installation Guide](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
 
-3. **Helm**: A package manager for Kubernetes that will help deploy Keycloak and other resources.  
-   [Helm Installation Guide](https://helm.sh/docs/intro/install/)
+3. **Helm**: A package manager for Kubernetes that will help deploy Keycloak and other resources: [Helm Installation Guide](https://helm.sh/docs/intro/install/)
 
-4. **Docker** (Optional): Useful for local testing and development using Docker Compose.  
-   [Install Docker](https://docs.docker.com/get-docker/)
+4. **Docker** (Optional): Useful for local testing and development using Docker Compose: [Install Docker](https://docs.docker.com/get-docker/)
 
 ---
 
@@ -378,4 +375,62 @@ ingress:
 EOF
 ```
 
+### Deploy Microcks
+```sh
+$ helm install microcks microcks/microcks -n microcks -f microcks-asynch.yaml
+```
+
+### Check the status of the deployed pods
+```sh
+$ kubectl get pods -n microcks
+--- OUTPUT ---
+NAME                                             READY   STATUS    RESTARTS    AGE
+mongodb-844cbfb466-lwwx4                         1/1     Running   0           4h1m
+keycloak-0                                       1/1     Running   0           3h2m
+microcks-async-minion-75f456b899-2www8           1/1     Running   4 (28s ago) 2m27s
+microcks-f49fc97f9-hfwn7                         1/1     Running   0           2m27s
+microcks-kafka-entity-operator-69c49b679b-xkggp  1/2     Running   0           19s
+microcks-kafka-kafka-0                           1/1     Running   0           51s
+microcks-kafka-zookeeper-0                       1/1     Running   0           95s
+microcks-postman-runtime-5c4f488f58-q8fvz        1/1     Running   0           2m27s
+strimzi-cluster-operator-5dd46b9985-ct2r9        1/1     Running   0           6m4s
+```
+
+### Get Ingress Details
+```sh
+$ kubectl get ingress -n microcks
+```
+
+Microcks is available at: `https://microcks.<YOUR-DOMAIN>.com` gRPC mock service is available at: `microcks-grpc.<YOUR-DOMAIN>.com` Kafka broker is available at: `microcks-kafka.kafka.<YOUR-DOMAIN>.com`
+
+🎉 **Congratulations! You've successfully deployed Microcks on Azure AKS with asynchronous capabilities. You can now begin using Microcks to mock and test your APIs with enhanced asynchronous features in your cloud environment.**
+
+## Cleanup (If Needed)
+```sh
+## Delete AKS Cluster
+$ az aks delete \
+  --resource-group microcks-prod-rg \
+  --name microcks-prod-aks \
+  --yes
+
+# Delete PostgreSQL
+$ az postgres flexible-server delete \
+  --resource-group microcks-prod-rg \
+  --name microcks-postgres \
+  --yes
+```
+> **Note:** Be sure to confirm that you no longer need the resources before performing cleanup.
+
+## Post-Deployment: Contributing to the Community 🤝
+We welcome community contributions to improve this guide and keep it updated. If you're an expert in any relevant area, your input can make this guide more valuable for everyone.
+
+**Contribution Areas:**
+- Security Best Practices – Replace hardcoded credentials with secure secret management solutions.
+- Infrastructure as Code – Convert manual steps into Terraform or other IaC templates.
+- Observability – Add guidance for integrating monitoring tools like Prometheus or Grafana.
+- Helm Optimization – Share production-ready Helm values for Keycloak.
+- High Availability – Suggest multi-region setups or failover strategies.
+- Automation – Provide scripts to automate deployment steps.
+
+If you'd like to contribute, please open a [Pull Request](https://github.com/microcks/community/pulls) or submit an [Issue](https://github.com/microcks/community/issues) with your suggestions. Let's work together to make this guide even better! 🙌
 
