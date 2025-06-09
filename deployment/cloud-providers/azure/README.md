@@ -24,7 +24,7 @@ Before you begin, ensure you have the following installed:
 
 ### Login to Azure and Create Resource Group
 ```sh
-### Login to Azure
+# Login to Azure
 $ az login
 
 # Follow the device login flow (visit https://microsoft.com/devicelogin and enter the provided code).
@@ -99,7 +99,7 @@ $ az aks get-credentials \
   --name microcks-prod-aks
 ```
 
-### Check the node status:
+### Check the status of your AKS nodes
 ```sh
 $ kubectl get nodes
 ```
@@ -187,8 +187,7 @@ $ kubectl create secret generic microcks-mongodb-connection -n microcks \
 
 ## 6. Deploy Keycloak on AKS with Azure Database for PostgreSQL
 
-Follow the [Keycloak deployment guide for Azure AKS](https://github.com/microcks/community/blob/main/install/gcp/keycloak-installation.md#6-deploy-keycloak-on-gke-with-cloud-sql) provided by the Microcks community.
-
+Follow the [Keycloak deployment guide for Azure AKS](https://github.com/microcks/community/blob/main/install/gcp/keycloak-installation.md#6-deploy-keycloak-on-gke-with-cloud-sql) provided by the Microcks community.  
 Start from **Step 6** of the document and continue through the remaining steps to deploy Keycloak on your AKS cluster.
 
 Once Keycloak is successfully deployed, complete the following configuration:
@@ -219,12 +218,14 @@ microcks:
   ingressAnnotations:
     cert-manager.io/cluster-issuer: "letsencrypt-prod"
     nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+
   grpcEnableTLS: true
   grpcIngressClassName: nginx
   grpcIngressAnnotations:
     cert-manager.io/cluster-issuer: "letsencrypt-prod"
     nginx.ingress.kubernetes.io/backend-protocol: "GRPC"
     nginx.ingress.kubernetes.io/ssl-passthrough: "true"
+
   env:
     - name: CORS_REST_ALLOWED_ORIGINS
       value: "https://keycloak.<your-domain>.com"
@@ -276,10 +277,10 @@ microcks-postman-runtime-586db88ff9-5djtg   1/1     Running   0          26s
 ```sh
 $ kubectl get ingress -n microcks
 --- OUTPUT ---
-NAME            CLASS   HOSTS                                 ADDRESS         PORTS     AGE
-keycloak        nginx   keycloak.<YOUR-DOMAIN>.com            <INGRESS-IP>    80, 443   2h9m
-microcks        nginx   microcks.<YOUR-DOMAIN>.com            <INGRESS-IP>    80, 443   1m17s
-microcks-grpc   nginx   microcks-grpc.<YOUR-DOMAIN>.com       <INGRESS-IP>    80, 443   1m17s
+NAME            CLASS   HOSTS                               ADDRESS       PORTS     AGE
+keycloak        nginx   keycloak.YOUR-DOMAIN.com            INGRESS-IP    80, 443   2h9m
+microcks        nginx   microcks.YOUR-DOMAIN.com            INGRESS-IP    80, 443   1m17s
+microcks-grpc   nginx   microcks-grpc.YOUR-DOMAIN.com       INGRESS-IP    80, 443   1m17s
 ```
 
 Microcks is available at: `https://microcks.<YOUR-DOMAIN>.com` gRPC mock service is available at: `microcks-grpc.<YOUR-DOMAIN>.com`
@@ -311,9 +312,9 @@ $ kubectl patch -n ingress-nginx deployment/ingress-nginx-controller --type='jso
 $ kubectl apply -f 'https://strimzi.io/install/latest?namespace=microcks' -n microcks
 ```
 
-### Prepare microcks-asynch.yaml Configuration File
+### Prepare microcks-async.yaml Configuration File
 ```sh
-$ cat > microcks-asynch.yaml <<EOF
+$ cat > microcks-async.yaml <<EOF
 appName: microcks
 ingresses: true
 
@@ -377,7 +378,7 @@ EOF
 
 ### Deploy Microcks
 ```sh
-$ helm install microcks microcks/microcks -n microcks -f microcks-asynch.yaml
+$ helm install microcks microcks/microcks -n microcks -f microcks-async.yaml
 ```
 
 ### Check the status of the deployed pods
