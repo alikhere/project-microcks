@@ -187,8 +187,8 @@ $ kubectl create secret generic microcks-mongodb-connection -n microcks \
 
 ## 6. Deploy Keycloak on AKS with Azure Database for PostgreSQL
 
-Follow the [Keycloak deployment guide for Azure AKS](https://github.com/microcks/community/blob/main/install/gcp/keycloak-installation.md#6-deploy-keycloak-on-gke-with-cloud-sql) provided by the Microcks community.  
-Start from **Step 6** of the document and continue through the remaining steps to deploy Keycloak on your AKS cluster.
+Follow the [Keycloak deployment guide for Azure AKS](https://github.com/microcks/community/blob/main/install/azure/keycloak-installation.md#5-deploy-keycloak-on-aks-with-azure-database-for-postgresql) provided by the Microcks community.  
+Start from **Step 5** of the document and continue through the remaining steps to deploy Keycloak on your AKS cluster.
 
 Once Keycloak is successfully deployed, complete the following configuration:
 
