@@ -283,27 +283,3 @@ Keycloak is available at `http://keycloak.<EXTERNAL-IP>.nip.io`
 - Go to the `Credentials` tab, set a `password`, and save it.
 
 🎉 Congratulations! You have successfully deployed Keycloak on AWS Elastic Kubernetes Service (EKS) with AWS Aurora (PostegreSQL) Database.
-
----
-
-## 🤝 Community Contributions
-
-We welcome community contributions to enhance this guide and keep it up to date with best practices.
-
-Whether you're an experienced DevOps engineer, a security enthusiast, or someone passionate about documentation, your input can make this deployment guide even more valuable for the community.
-
-### Areas Where You Can Contribute:
-
-- 🔐 **Security Improvements** – Replace hardcoded credentials with secure secret management (e.g., AWS Secrets Manager).
-- 🏗️ **Infrastructure as Code** – Convert manual steps into Terraform, AWS CDK, or CloudFormation modules.
-- 📈 **Observability Enhancements** – Add integration guidance for monitoring tools like Prometheus, Grafana, or AWS CloudWatch.
-- ⚙️ **Helm Configuration Tuning** – Suggest production-optimized values or best practices for Keycloak.
-- 🌐 **High Availability** – Propose improvements for multi-AZ setups or failover strategies.
-- 🌍 **Localization** – Translate this guide into other languages for broader accessibility.
-- 🤖 **Automation Scripts** – Provide shell or Python scripts to automate key deployment steps.
-
-If you’d like to contribute, please open a [Pull Request](https://github.com/microcks/community/tree/main/install/aws) or file an [Issue](https://github.com/microcks/community/issues) with your suggestions.
-
-Together, we can make this deployment guide more reliable, secure, and accessible to everyone.
-
----
