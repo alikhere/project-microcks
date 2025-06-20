@@ -56,15 +56,3 @@ $ gcloud container node-pools create new-pool \
 $ gcloud container node-pools delete default-pool --cluster=<cluster-name> --zone=<zone>
 ```
 
-Option 2: Recreate the cluster with correct config
-```sh
-# Delete existing cluster
-$ gcloud container clusters delete <cluster-name> --zone=<zone>
-
-# Create new cluster with service account
-$ gcloud container clusters create <cluster-name> \
-  --zone <zone> --num-nodes=3 --enable-autoscaling --min-nodes=2 --max-nodes=6 \
-  --machine-type=e2-standard-4 \
-  --enable-ip-alias --enable-network-policy \
-  --service-account=<service-account-email>
-`
