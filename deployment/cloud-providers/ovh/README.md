@@ -74,3 +74,94 @@ $ kubectl create secret generic microcks-mongodb-connection -n microcks \
   --from-literal=password=<PASSWORD>
 ```
 
+## 4. Deploy Keycloak (Optional or External)
+
+You can deploy Keycloak manually on the OVH Kubernetes cluster or use an existing Keycloak instance.
+
+Ensure it connects to the PostgreSQL DB created earlier.
+
+Set up realm, client, and user for Microcks.
+
+## 5. Configure Helm Values for Microcks
+
+## a. Add Microcks Helm Repository
+
+```sh
+$ helm repo add microcks https://microcks.io/helm
+$ helm repo update
+```
+
+### b. Create Configuration File
+
+```ah
+$ cat << microcks.yaml
+appName: microcks
+ingresses: true
+
+microcks:
+  url: microcks.<YOUR-DOMAIN>.ovh
+  ingressClassName: nginx
+  ingressAnnotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+
+  grpcEnableTLS: true
+  grpcIngressClassName: nginx
+  grpcIngressAnnotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/backend-protocol: "GRPC"
+    nginx.ingress.kubernetes.io/ssl-passthrough: "true"
+
+  env:
+    - name: SPRING_DATA_MONGODB_URI
+      value: "mongodb://<USERNAME>:<PASSWORD>@mongodb.microcks.svc.cluster.local:27017/microcks?authSource=microcks"
+    - name: CORS_REST_ALLOWED_ORIGINS
+      value: "https://keycloak.<YOUR-DOMAIN>.ovh"
+    - name: CORS_REST_ALLOW_CREDENTIALS
+      value: "true"
+
+keycloak:
+  enabled: true
+  install: false
+  url: keycloak.<YOUR-DOMAIN>.ovh
+  privateUrl: https://keycloak.<YOUR-DOMAIN>.ovh
+  realm: microcks
+  client:
+    id: <YOUR-CLIENT-ID>
+    secret: <CLIENT-SECRET>
+
+mongodb:
+  install: false
+  database: microcks
+  secretRef:
+    secret: microcks-mongodb-connection
+    usernameKey: username
+    passwordKey: password
+
+ingress:
+  enabled: true
+  tls: true
+EOF
+```
+
+## 6. Deploy Microcks
+
+```sh
+$ helm install microcks microcks/microcks -n microcks -f microcks.yaml
+```
+
+## 7. Verify Deployment
+
+```sh
+$ kubectl get pods -n microcks
+$ kubectl get ingress -n microcks
+```
+
+Example output:
+NAME                        READY   STATUS    RESTARTS   AGE
+microcks-xxx                1/1     Running   0          2m
+mongodb-xxx                 1/1     Running   0          2m
+
+Access Microcks at:
+https://microcks.<YOUR-DOMAIN>.ovh
+
