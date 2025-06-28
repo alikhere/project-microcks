@@ -9,7 +9,8 @@ This guide provides a comprehensive, step-by-step process for deploying Microcks
 ### Ensure the following tools are installed and configured:
 - OVHcloud CLI (ovh): For managing OVH services.
 - kubectl: For managing Kubernetes resources.
-- Helm: To install Microcks and MongoDB via Helm charts.
+- Helm: To install Microcks and MongoDB via Helm charts
+- .
 - Docker (optional): For local development and testing.
 
 
@@ -141,27 +142,5 @@ mongodb:
 ingress:
   enabled: true
   tls: true
-EOF
-```
 
-## 6. Deploy Microcks
-
-```sh
-$ helm install microcks microcks/microcks -n microcks -f microcks.yaml
-```
-
-## 7. Verify Deployment
-
-```sh
-$ kubectl get pods -n microcks
-$ kubectl get ingress -n microcks
-```
-
-Example output:
-NAME                        READY   STATUS    RESTARTS   AGE
-microcks-xxx                1/1     Running   0          2m
-mongodb-xxx                 1/1     Running   0          2m
-
-Access Microcks at:
-https://microcks.<YOUR-DOMAIN>.ovh
 
