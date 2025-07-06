@@ -81,4 +81,3 @@ You can deploy Keycloak manually on the OVH Kubernetes cluster or use an existin
 
 Ensure it connects to the PostgreSQL DB created earlier.
 
-Set up realm, client, and user for Microcks.
